@@ -711,6 +711,38 @@
                 opacity: 0.5;
             }
 
+            /* Round-1 team-swap select */
+            .slot-select {
+                min-width: 0;
+                width: 100%;
+                height: 28px;
+                border-radius: 3px;
+                border: 1px solid rgba(0, 210, 255, 0.3);
+                background: rgba(2, 5, 12, 0.9);
+                color: var(--text);
+                padding: 0 4px;
+                outline: 0;
+                font-family: "Rajdhani", sans-serif;
+                font-weight: 600;
+                font-size: 0.85rem;
+                letter-spacing: 0.02em;
+                cursor: pointer;
+                transition:
+                    border-color 0.18s,
+                    box-shadow 0.18s;
+            }
+            .slot-select:focus {
+                border-color: var(--cyan);
+                box-shadow: 0 0 10px rgba(0, 210, 255, 0.28);
+            }
+            .slot-select:hover {
+                border-color: rgba(0, 210, 255, 0.55);
+            }
+            .slot-select option {
+                background: #080e1c;
+                color: var(--text);
+            }
+
             /* Name button inside slot */
             .name-button {
                 min-width: 0;
@@ -1578,7 +1610,7 @@
                 "YMT",
                 "MGA",
                 "RCM",
-                "S2G",                
+                "S2G",
                 "ZK",
                 "Fx7",
                 "Hollows",
@@ -2123,6 +2155,36 @@
                 if (index >= 0) state[key][index] = newId;
             }
 
+            /* Swap two teams by ID anywhere in the bracket (same or cross-bracket).
+               Uses index-based swap to avoid indexOf ambiguity when both teams
+               share the same bracket. */
+            function swapAnyTeam(idA, idB) {
+                if (readOnly || !idA || !idB || idA === idB) return;
+                const teamA = teamById(idA);
+                const teamB = teamById(idB);
+                if (!teamA || !teamB) return;
+                const keyA = bracketKey(teamA.bracket);
+                const keyB = bracketKey(teamB.bracket);
+                const aIdx = state[keyA].indexOf(idA);
+                const bIdx = state[keyB].indexOf(idB);
+                if (aIdx < 0 || bIdx < 0) return;
+                /* Swap the IDs in their respective slot arrays */
+                state[keyA][aIdx] = idB;
+                state[keyB][bIdx] = idA;
+                /* If cross-bracket, update the team.bracket references */
+                if (teamA.bracket !== teamB.bracket) {
+                    const tmpB = teamA.bracket;
+                    teamA.bracket = teamB.bracket;
+                    teamB.bracket = tmpB;
+                    clearProgress("high");
+                    clearProgress("low");
+                } else {
+                    clearProgress(teamA.bracket);
+                }
+                saveState();
+                renderAll();
+            }
+
             // ─── TEAM MANAGER RENDER ──────────────────────────────────────────────────
 
             function renderTeamManager() {
@@ -2329,16 +2391,6 @@
                     state.picks[key] === id && Boolean(id),
                 );
 
-                const name = document.createElement("button");
-                name.className = "name-button";
-                name.type = "button";
-                name.textContent = id ? displayName(id) : "Waiting";
-                name.disabled = !id;
-                name.addEventListener("click", (event) => {
-                    event.stopPropagation();
-                    if (id) navigate("roster", id);
-                });
-
                 const pick = iconButton(
                     "OK",
                     "Move team forward",
@@ -2349,6 +2401,62 @@
                     "pick",
                 );
                 pick.disabled = !canPick || readOnly;
+
+                /* ── Round 1: replace name button with an all-teams dropdown ── */
+                if (roundIndex === 0 && id && !readOnly) {
+                    const select = document.createElement("select");
+                    select.className = "slot-select";
+                    select.title =
+                        "Select a team for this slot (swaps positions)";
+
+                    /* Build two optgroups so the user knows which bracket
+                       each team currently lives in. */
+                    const groups = [
+                        { label: "Higher Bracket", ids: state.highSlots },
+                        { label: "Lower Bracket", ids: state.lowSlots },
+                    ];
+                    groups.forEach(({ label, ids }) => {
+                        if (!ids.length) return;
+                        const grp = document.createElement("optgroup");
+                        grp.label = label;
+                        ids.forEach((tid) => {
+                            if (!tid) return;
+                            const opt = document.createElement("option");
+                            opt.value = tid;
+                            opt.textContent = displayName(tid);
+                            if (tid === id) opt.selected = true;
+                            grp.appendChild(opt);
+                        });
+                        select.appendChild(grp);
+                    });
+
+                    select.addEventListener("change", (event) => {
+                        event.stopPropagation();
+                        swapAnyTeam(id, event.target.value);
+                    });
+                    /* prevent slot-click from firing chooseWinner on select interaction */
+                    select.addEventListener("click", (e) =>
+                        e.stopPropagation(),
+                    );
+
+                    slot.append(select, pick);
+                    if (canPick && !readOnly)
+                        slot.addEventListener("click", () =>
+                            chooseWinner(bracket, roundIndex, matchIndex, id),
+                        );
+                    return slot;
+                }
+
+                /* ── All other rounds: show clickable name button ── */
+                const name = document.createElement("button");
+                name.className = "name-button";
+                name.type = "button";
+                name.textContent = id ? displayName(id) : "Waiting";
+                name.disabled = !id;
+                name.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    if (id) navigate("roster", id);
+                });
 
                 slot.append(name, pick);
                 if (canPick && !readOnly)
