@@ -1,1585 +1,2631 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Bracket Forge</title>
-  <style>
-    :root {
-      color-scheme: dark;
-      --bg: #08090d;
-      --panel: rgba(17, 22, 30, .88);
-      --panel-2: #171d27;
-      --panel-3: #202838;
-      --line: rgba(255,255,255,.11);
-      --text: #f4f7fb;
-      --muted: #aab4c2;
-      --gold: #f0b33f;
-      --cyan: #6ec8ff;
-      --green: #75d36d;
-      --red: #ee7770;
-      --ink: #07080b;
-      --shadow: 0 18px 55px rgba(0,0,0,.36);
-      --radius: 8px;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background:
-        radial-gradient(circle at 12% 10%, rgba(110, 200, 255, .12), transparent 30%),
-        radial-gradient(circle at 92% 12%, rgba(240, 179, 63, .13), transparent 24%),
-        linear-gradient(155deg, #08090d 0%, #111620 48%, #090b10 100%);
-      color: var(--text);
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      opacity: .20;
-      background-image:
-        linear-gradient(120deg, transparent 0 63%, rgba(240,179,63,.25) 63.5%, transparent 64.2%),
-        repeating-linear-gradient(0deg, rgba(255,255,255,.04) 0 1px, transparent 1px 22px);
-      mask-image: linear-gradient(to bottom, #000, transparent 78%);
-    }
-
-    button, input, select { font: inherit; }
-
-    button {
-      border: 0;
-      color: var(--text);
-      cursor: pointer;
-    }
-
-    button:disabled, input:disabled, select:disabled {
-      cursor: not-allowed;
-      opacity: .55;
-    }
-
-    a { color: inherit; }
-
-    .app {
-      position: relative;
-      z-index: 1;
-      width: min(1500px, 100%);
-      margin: 0 auto;
-      padding: 18px;
-    }
-
-    .topbar {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 14px;
-      align-items: center;
-      padding: 14px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: var(--panel);
-      box-shadow: var(--shadow);
-    }
-
-    .brand {
-      min-width: 0;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .crest {
-      width: 58px;
-      height: 58px;
-      flex: 0 0 auto;
-      display: grid;
-      place-items: center;
-      border: 2px solid var(--gold);
-      color: #ffe07a;
-      background: linear-gradient(145deg, #1d2532, #08090d);
-      font-size: 1.2rem;
-      clip-path: polygon(50% 0, 93% 14%, 86% 74%, 50% 100%, 14% 74%, 7% 14%);
-    }
-
-    h1, h2, h3, p { margin: 0; }
-
-    h1 {
-      font-size: clamp(1.45rem, 2.4vw, 2.45rem);
-      line-height: 1.02;
-      letter-spacing: 0;
-    }
-
-    .subtitle {
-      margin-top: 5px;
-      color: var(--muted);
-      font-size: .95rem;
-    }
-
-    .nav, .actions, .controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: flex-end;
-    }
-
-    .btn {
-      min-height: 38px;
-      padding: 0 12px;
-      border-radius: 6px;
-      border: 1px solid var(--line);
-      background: var(--panel-2);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      text-decoration: none;
-      white-space: nowrap;
-      transition: transform .15s ease, border-color .15s ease, background .15s ease;
-    }
-
-    .btn:hover {
-      transform: translateY(-1px);
-      border-color: rgba(240,179,63,.65);
-    }
-
-    .btn.gold {
-      background: linear-gradient(180deg, #e7a735, #a86b16);
-      color: #101010;
-      border-color: #ffd26a;
-      font-weight: 800;
-    }
-
-    .btn.cyan {
-      border-color: rgba(110,200,255,.45);
-      background: rgba(110,200,255,.12);
-    }
-
-    .btn.danger:hover {
-      border-color: rgba(238,119,112,.8);
-      color: #ffe1df;
-    }
-
-    .view { display: none; margin-top: 18px; }
-    .view.active { display: block; }
-
-    .readonly {
-      display: none;
-      margin-top: 12px;
-      padding: 10px 12px;
-      border: 1px solid rgba(110,200,255,.38);
-      border-radius: 6px;
-      background: rgba(110,200,255,.10);
-      color: #cdeeff;
-    }
-
-    .readonly.show { display: block; }
-
-    .home-hero {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 370px;
-      gap: 18px;
-      align-items: stretch;
-    }
-
-    .hero-panel, .feature-card, .panel, .final-card, .team-list, .roster-card {
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: var(--panel);
-      box-shadow: var(--shadow);
-    }
-
-    .hero-panel {
-      min-height: 360px;
-      padding: clamp(20px, 5vw, 48px);
-      display: grid;
-      align-content: center;
-      gap: 18px;
-      overflow: hidden;
-      position: relative;
-    }
-
-    .hero-panel::after {
-      content: "BRACKET FORGE";
-      position: absolute;
-      right: -18px;
-      bottom: 20px;
-      color: rgba(255,255,255,.045);
-      font-size: clamp(3rem, 9vw, 8rem);
-      font-weight: 900;
-      line-height: .8;
-      pointer-events: none;
-    }
-
-    .hero-panel h2 {
-      max-width: 760px;
-      font-size: clamp(2.1rem, 5vw, 4.6rem);
-      line-height: .98;
-      letter-spacing: 0;
-    }
-
-    .hero-panel p {
-      max-width: 690px;
-      color: var(--muted);
-      font-size: 1.04rem;
-      line-height: 1.6;
-    }
-
-    .feature-grid {
-      display: grid;
-      gap: 12px;
-    }
-
-    .feature-card {
-      padding: 16px;
-      text-align: left;
-      display: grid;
-      gap: 8px;
-      min-height: 122px;
-      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
-    }
-
-    .feature-card strong {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 1.05rem;
-    }
-
-    .feature-card span {
-      color: var(--muted);
-      line-height: 1.45;
-    }
-
-    .toolbar {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 12px;
-      align-items: center;
-      margin-bottom: 14px;
-    }
-
-    .editable-title {
-      display: grid;
-      grid-template-columns: minmax(180px, 360px) minmax(160px, 280px);
-      gap: 10px;
-      align-items: center;
-    }
-
-    .title-input, .field, .select {
-      min-width: 0;
-      height: 38px;
-      border-radius: 6px;
-      border: 1px solid var(--line);
-      background: rgba(8,10,14,.72);
-      color: var(--text);
-      padding: 0 11px;
-      outline: 0;
-    }
-
-    .title-input {
-      font-weight: 900;
-      color: #ffe7a4;
-      text-transform: uppercase;
-    }
-
-    .title-input:focus, .field:focus, .select:focus {
-      border-color: rgba(240,179,63,.72);
-    }
-
-    .hint {
-      color: var(--muted);
-      font-size: .95rem;
-      line-height: 1.45;
-    }
-
-    .bracket-layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 230px;
-      gap: 16px;
-      align-items: stretch;
-    }
-
-    .bracket-section {
-      padding: 14px;
-    }
-
-    .bracket-section + .bracket-section {
-      border-top: 2px solid rgba(240,179,63,.50);
-    }
-
-    .section-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .section-title {
-      display: flex;
-      align-items: baseline;
-      gap: 10px;
-      min-width: 0;
-    }
-
-    .section-title h2 {
-      color: var(--gold);
-      font-size: 1.08rem;
-      text-transform: uppercase;
-      letter-spacing: 0;
-    }
-
-    .team-count {
-      color: var(--muted);
-      font-size: .86rem;
-      white-space: nowrap;
-    }
-
-    .bracket-scroll {
-      overflow-x: auto;
-      padding-bottom: 6px;
-    }
-
-    .bracket {
-      display: grid;
-      grid-auto-flow: column;
-      grid-auto-columns: minmax(182px, 1fr);
-      gap: 22px;
-      min-width: max-content;
-    }
-
-    .round {
-      display: flex;
-      flex-direction: column;
-      justify-content: space-around;
-      gap: 12px;
-      min-height: var(--round-height);
-    }
-
-    .round-label {
-      position: sticky;
-      top: 0;
-      z-index: 2;
-      padding: 4px 2px 8px;
-      color: var(--muted);
-      font-size: .78rem;
-      text-transform: uppercase;
-      background: rgba(17,22,30,.95);
-    }
-
-    .match {
-      position: relative;
-      display: grid;
-      align-content: center;
-      gap: 6px;
-      min-height: 86px;
-    }
-
-    .match::after {
-      content: "";
-      position: absolute;
-      right: -22px;
-      top: 50%;
-      width: 22px;
-      border-top: 2px solid rgba(240,179,63,.56);
-    }
-
-    .round:last-child .match::after { display: none; }
-
-    .slot {
-      min-height: 38px;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 34px;
-      gap: 6px;
-      align-items: center;
-      padding: 5px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: linear-gradient(180deg, #1a202b, #10141b);
-      transition: border-color .15s ease, background .15s ease;
-    }
-
-    .slot.can-pick { border-color: rgba(240,179,63,.65); }
-
-    .slot.winner {
-      border-color: rgba(117,211,109,.88);
-      background: linear-gradient(180deg, rgba(117,211,109,.22), #101813);
-    }
-
-    .slot.empty { opacity: .72; }
-
-    .name-button {
-      min-width: 0;
-      height: 28px;
-      padding: 0 6px;
-      border-radius: 4px;
-      text-align: left;
-      background: transparent;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .name-button:hover { background: rgba(255,255,255,.06); }
-
-    .icon-btn {
-      width: 30px;
-      height: 28px;
-      border-radius: 5px;
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,.06);
-      display: grid;
-      place-items: center;
-      font-weight: 900;
-      line-height: 1;
-    }
-
-    .icon-btn.pick { color: var(--green); }
-    .icon-btn.remove { color: var(--red); }
-    .icon-btn.swap { color: var(--cyan); }
-
-    .final-card {
-      padding: 14px;
-      display: grid;
-      align-content: center;
-      gap: 12px;
-      min-height: 100%;
-    }
-
-    .final-title {
-      color: var(--gold);
-      text-align: center;
-      text-transform: uppercase;
-      font-size: 1rem;
-    }
-
-    .final-team, .champion, .vs {
-      border-radius: 6px;
-      border: 1px solid var(--line);
-      background: var(--panel-2);
-      text-align: center;
-    }
-
-    .final-team {
-      min-height: 46px;
-      padding: 10px;
-    }
-
-    .vs {
-      height: 52px;
-      display: grid;
-      place-items: center;
-      font-size: 1.45rem;
-      font-weight: 900;
-      background: linear-gradient(180deg, #303848, #111620);
-    }
-
-    .champion {
-      padding: 12px;
-      border-color: rgba(240,179,63,.56);
-      background: rgba(240,179,63,.12);
-    }
-
-    .team-manager {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 320px;
-      gap: 16px;
-    }
-
-    .manager-list {
-      display: grid;
-      gap: 10px;
-    }
-
-    .team-row, .player-row {
-      display: grid;
-      grid-template-columns: minmax(150px, 1fr) 140px repeat(3, 38px);
-      gap: 8px;
-      align-items: center;
-      padding: 8px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: rgba(17,22,30,.80);
-    }
-
-    .small-label {
-      color: var(--muted);
-      font-size: .82rem;
-    }
-
-    .side-box {
-      padding: 14px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: var(--panel);
-      box-shadow: var(--shadow);
-      align-self: start;
-      display: grid;
-      gap: 10px;
-    }
-
-    .roster-wrap {
-      display: grid;
-      grid-template-columns: 300px minmax(0, 1fr);
-      gap: 16px;
-    }
-
-    .team-list, .roster-card { padding: 14px; }
-
-    .team-link {
-      width: 100%;
-      min-height: 38px;
-      margin-bottom: 7px;
-      padding: 0 10px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: var(--panel-2);
-      text-align: left;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .team-link.active, .team-link:hover {
-      border-color: rgba(240,179,63,.70);
-    }
-
-    .roster-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-
-    .players {
-      display: grid;
-      gap: 10px;
-    }
-
-    .player-row {
-      grid-template-columns: 86px minmax(0, 1fr) 38px;
-    }
-
-    .friend-list {
-      display: grid;
-      gap: 10px;
-      margin-top: 14px;
-    }
-
-    .friend-row {
-      display: grid;
-      grid-template-columns: 42px minmax(0, 1fr) 38px;
-      gap: 8px;
-      align-items: center;
-      padding: 8px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: rgba(17,22,30,.80);
-    }
-
-    .rank {
-      width: 34px;
-      height: 34px;
-      border-radius: 6px;
-      display: grid;
-      place-items: center;
-      background: rgba(240,179,63,.13);
-      color: #ffe3a0;
-      font-weight: 800;
-    }
-
-    .empty-state {
-      min-height: 180px;
-      display: grid;
-      place-items: center;
-      color: var(--muted);
-      text-align: center;
-      padding: 20px;
-      border: 1px dashed rgba(255,255,255,.16);
-      border-radius: 6px;
-    }
-
-    .hosting {
-      margin-top: 16px;
-      padding: 14px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: rgba(17,22,30,.72);
-      color: var(--muted);
-      line-height: 1.55;
-    }
-
-    .hosting strong { color: var(--text); }
-
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      z-index: 20;
-      display: none;
-      place-items: center;
-      padding: 16px;
-      background: rgba(0,0,0,.62);
-      backdrop-filter: blur(8px);
-    }
-
-    .modal-backdrop.show { display: grid; }
-
-    .modal {
-      width: min(460px, 100%);
-      padding: 18px;
-      border: 1px solid rgba(240,179,63,.42);
-      border-radius: var(--radius);
-      background: #111722;
-      box-shadow: var(--shadow);
-      display: grid;
-      gap: 12px;
-    }
-
-    .modal h2 { color: var(--gold); font-size: 1.25rem; }
-    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
-
-    @media (max-width: 980px) {
-      .topbar, .home-hero, .toolbar, .bracket-layout, .team-manager, .roster-wrap {
-        grid-template-columns: 1fr;
-      }
-
-      .nav, .actions, .controls { justify-content: flex-start; }
-      .editable-title { grid-template-columns: 1fr; }
-      .final-card { min-height: auto; }
-    }
-
-    @media (max-width: 680px) {
-      .app { padding: 12px; }
-      .topbar, .bracket-section, .team-list, .roster-card, .side-box { padding: 12px; }
-      .section-head, .roster-head { align-items: flex-start; flex-direction: column; }
-      .team-row { grid-template-columns: 1fr 1fr 38px 38px 38px; }
-      .player-row { grid-template-columns: 1fr 38px; }
-      .player-row .small-label { grid-column: 1 / -1; }
-    }
-  </style>
-</head>
-<body>
-  <main class="app">
-    <header class="topbar">
-      <div class="brand">
-        <div class="crest" aria-hidden="true">⚔️💀</div>
-        <div>
-          <h1 id="appTitle">Bracket Forge</h1>
-          <p class="subtitle" id="appSubtitle">A frontend-only tournament board for clans, teams, players, and friends.</p>
-        </div>
-      </div>
-      <nav class="nav">
-        <button class="btn" data-route="home" type="button">Home</button>
-        <button class="btn" data-route="league" type="button">🏆 League</button>
-        <button class="btn" data-route="friends" type="button">🎮 Players</button>
-      </nav>
-    </header>
-
-    <div class="readonly" id="readOnlyBanner">Read-only share view. Make your own editable copy to change anything.</div>
-
-    <section class="view active" id="homeView">
-      <div class="home-hero">
-        <div class="hero-panel">
-          <h2>Run clean brackets without a backend.</h2>
-          <p>Create a league for any game, manage teams and rosters, advance winners, and share the current state with friends through a read-only link. Everything works inside one HTML file, so free hosting is simple.</p>
-          <div class="actions">
-            <button class="btn gold" data-route="league" type="button">🏆 Clan or team tournament</button>
-            <button class="btn cyan" data-route="friends" type="button">🎮 Player competition</button>
-          </div>
-        </div>
-        <div class="feature-grid">
-          <button class="feature-card" data-route="league" type="button">
-            <strong>🏆 League / Tournament</strong>
-            <span>For clan wars, team cups, and bracket events. Add teams, swap brackets, manage rosters, and pick winners.</span>
-          </button>
-          <button class="feature-card" data-route="friends" type="button">
-            <strong>🎮 Friends Competition</strong>
-            <span>For simple events among players. Start with four boxes, add more players, remove entries, and keep the list saved.</span>
-          </button>
-          <div class="feature-card">
-            <strong>🔗 Share Without Backend</strong>
-            <span>Generate a read-only snapshot link. Your normal edits stay in local storage, while shared viewers see the exported state.</span>
-          </div>
-        </div>
-      </div>
-     
-    </section>
-
-    <section class="view" id="leagueView">
-      <div class="toolbar">
-        <div>
-          <div class="editable-title">
-            <input class="title-input" id="leagueNameInput" aria-label="League name">
-            <input class="title-input" id="gameNameInput" aria-label="Game name">
-          </div>
-          <p class="hint">Manage slots on the team page. Use OK to advance winners. Click a team name to edit its players.</p>
-        </div>
-        <div class="controls">
-          <button class="btn gold" data-route="teams" type="button">🛡️ Manage teams</button>
-          <button class="btn cyan" id="shareBtn" type="button">🔗 Share read-only</button>
-          <button class="btn danger" id="resetLeagueBtn" type="button">Reset league</button>
-        </div>
-      </div>
-
-      <div class="bracket-layout">
-        <div class="panel">
-          <section class="bracket-section">
-            <div class="section-head">
-              <div class="section-title">
-                <h2>Higher Bracket</h2>
-                <span class="team-count" id="highCount"></span>
-              </div>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Iron Crest League</title>
+        <style>
+            @import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&display=swap");
+
+            :root {
+                color-scheme: dark;
+                --bg: #020408;
+                --panel: rgba(4, 10, 20, 0.82);
+                --panel-2: rgba(6, 13, 26, 0.9);
+                --panel-3: rgba(10, 18, 36, 0.96);
+                --line: rgba(0, 210, 255, 0.18);
+                --text: #ddeeff;
+                --muted: #5a7a96;
+                --gold: #ffb800;
+                --cyan: #00d2ff;
+                --green: #00ff8c;
+                --red: #ff3a3a;
+                --ink: #010205;
+                --shadow: 0 24px 70px rgba(0, 0, 0, 0.75);
+                --radius: 4px;
+                --glow-gold:
+                    0 0 8px rgba(255, 184, 0, 0.55),
+                    0 0 22px rgba(255, 184, 0, 0.25);
+                --glow-cyan:
+                    0 0 8px rgba(0, 210, 255, 0.55),
+                    0 0 22px rgba(0, 210, 255, 0.25);
+                --glow-green:
+                    0 0 8px rgba(0, 255, 140, 0.55),
+                    0 0 22px rgba(0, 255, 140, 0.25);
+                --glow-red:
+                    0 0 8px rgba(255, 58, 58, 0.55),
+                    0 0 22px rgba(255, 58, 58, 0.25);
+            }
+
+            * {
+                box-sizing: border-box;
+                margin: 0;
+            }
+
+            /* ═══════════════════════════════════════════
+       BODY — gun-fight background + dark overlay
+    ═══════════════════════════════════════════ */
+            body {
+                min-height: 100vh;
+                font-family: "Rajdhani", ui-sans-serif, system-ui, sans-serif;
+                font-size: 1rem;
+                font-weight: 500;
+                color: var(--text);
+                background-color: #020408;
+                /* Gun-fight / military combat scene from Unsplash (free) */
+                background-image: url("https://images.unsplash.com/photo-1598550476439-6847ef35ead6?auto=format&fit=crop&w=1920&q=65");
+                background-size: cover;
+                background-position: center top;
+                background-attachment: fixed;
+                background-repeat: no-repeat;
+            }
+
+            /* Dark translucent overlay so panels are readable */
+            body::before {
+                content: "";
+                position: fixed;
+                inset: 0;
+                z-index: 0;
+                pointer-events: none;
+                background:
+                    linear-gradient(
+                        180deg,
+                        rgba(2, 4, 10, 0.92) 0%,
+                        rgba(2, 4, 10, 0.76) 35%,
+                        rgba(2, 4, 10, 0.82) 70%,
+                        rgba(2, 4, 10, 0.97) 100%
+                    ),
+                    linear-gradient(
+                        135deg,
+                        rgba(0, 210, 255, 0.05) 0%,
+                        transparent 45%,
+                        rgba(255, 184, 0, 0.05) 100%
+                    );
+            }
+
+            /* CRT scan-line texture */
+            body::after {
+                content: "";
+                position: fixed;
+                inset: 0;
+                z-index: 0;
+                pointer-events: none;
+                background-image: repeating-linear-gradient(
+                    0deg,
+                    transparent 0px,
+                    transparent 3px,
+                    rgba(0, 0, 0, 0.08) 3px,
+                    rgba(0, 0, 0, 0.08) 4px
+                );
+            }
+
+            button,
+            input,
+            select {
+                font: inherit;
+            }
+            button {
+                border: 0;
+                color: var(--text);
+                cursor: pointer;
+            }
+            button:disabled,
+            input:disabled,
+            select:disabled {
+                cursor: not-allowed;
+                opacity: 0.42;
+            }
+            a {
+                color: inherit;
+            }
+
+            /* ═══════════════════════════
+       APP SHELL
+    ═══════════════════════════ */
+            .app {
+                position: relative;
+                z-index: 1;
+                width: min(1540px, 100%);
+                margin: 0 auto;
+                padding: 14px;
+            }
+
+            /* ═══════════════════════════
+       TOP BAR — HUD frame
+    ═══════════════════════════ */
+            .topbar {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto;
+                gap: 14px;
+                align-items: center;
+                padding: 12px 18px;
+                background: var(--panel);
+                border: 1px solid rgba(0, 210, 255, 0.22);
+                border-top: 2px solid var(--cyan);
+                border-radius: var(--radius);
+                box-shadow:
+                    var(--shadow),
+                    inset 0 0 40px rgba(0, 210, 255, 0.04);
+                backdrop-filter: blur(18px);
+                -webkit-backdrop-filter: blur(18px);
+                position: relative;
+                overflow: hidden;
+            }
+
+            /* Animated top-glow line */
+            .topbar::after {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: -100%;
+                right: -100%;
+                height: 1px;
+                background: linear-gradient(
+                    90deg,
+                    transparent 0%,
+                    var(--cyan) 50%,
+                    transparent 100%
+                );
+                opacity: 0.55;
+                animation: sweep 4s linear infinite;
+            }
+
+            @keyframes sweep {
+                0% {
+                    transform: translateX(-60%);
+                }
+                100% {
+                    transform: translateX(60%);
+                }
+            }
+
+            .brand {
+                min-width: 0;
+                display: flex;
+                align-items: center;
+                gap: 14px;
+            }
+
+            /* Hexagonal crest badge */
+            .crest {
+                width: 54px;
+                height: 54px;
+                flex: 0 0 auto;
+                display: grid;
+                place-items: center;
+                background: linear-gradient(
+                    145deg,
+                    rgba(255, 184, 0, 0.18),
+                    rgba(255, 184, 0, 0.06)
+                );
+                border: 1px solid rgba(255, 184, 0, 0.55);
+                color: var(--gold);
+                font-size: 1.15rem;
+                clip-path: polygon(
+                    50% 0%,
+                    93% 14%,
+                    86% 74%,
+                    50% 100%,
+                    14% 74%,
+                    7% 14%
+                );
+                box-shadow: var(--glow-gold);
+                transition: box-shadow 0.25s;
+            }
+            .crest:hover {
+                box-shadow:
+                    0 0 20px rgba(255, 184, 0, 0.8),
+                    0 0 40px rgba(255, 184, 0, 0.4);
+            }
+
+            h1 {
+                font-family: "Orbitron", sans-serif;
+                font-size: clamp(1.05rem, 2vw, 1.85rem);
+                font-weight: 900;
+                line-height: 1.05;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+                background: linear-gradient(
+                    120deg,
+                    #fff 0%,
+                    var(--cyan) 55%,
+                    #fff 100%
+                );
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+
+            .subtitle {
+                margin-top: 3px;
+                color: var(--muted);
+                font-size: 0.85rem;
+                letter-spacing: 0.02em;
+            }
+
+            /* ═══════════════════════════
+       NAV / ACTIONS / CONTROLS
+    ═══════════════════════════ */
+            .nav,
+            .actions,
+            .controls {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                justify-content: flex-end;
+            }
+
+            /* ═══════════════════════════
+       BUTTONS
+    ═══════════════════════════ */
+            .btn {
+                min-height: 36px;
+                padding: 0 14px;
+                border-radius: 3px;
+                border: 1px solid rgba(0, 210, 255, 0.28);
+                background: rgba(0, 210, 255, 0.07);
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 7px;
+                text-decoration: none;
+                white-space: nowrap;
+                font-family: "Rajdhani", sans-serif;
+                font-weight: 700;
+                font-size: 0.88rem;
+                letter-spacing: 0.05em;
+                text-transform: uppercase;
+                transition: all 0.18s ease;
+                position: relative;
+                overflow: hidden;
+            }
+            .btn::after {
+                content: "";
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(
+                    180deg,
+                    rgba(255, 255, 255, 0.05),
+                    transparent
+                );
+                pointer-events: none;
+            }
+            .btn:hover {
+                transform: translateY(-2px);
+                border-color: var(--cyan);
+                background: rgba(0, 210, 255, 0.13);
+                box-shadow: var(--glow-cyan);
+            }
+
+            .btn.gold {
+                background: linear-gradient(175deg, #c97c10, #7a4208);
+                border-color: var(--gold);
+                color: #fff8e0;
+                font-weight: 700;
+                box-shadow: 0 2px 14px rgba(255, 184, 0, 0.28);
+            }
+            .btn.gold:hover {
+                box-shadow: var(--glow-gold);
+                transform: translateY(-2px);
+            }
+
+            .btn.cyan {
+                border-color: rgba(0, 210, 255, 0.55);
+                background: rgba(0, 210, 255, 0.1);
+            }
+
+            .btn.danger:hover {
+                border-color: var(--red);
+                color: #ffcece;
+                box-shadow: var(--glow-red);
+            }
+
+            /* ═══════════════════════════
+       VIEWS
+    ═══════════════════════════ */
+            .view {
+                display: none;
+                margin-top: 14px;
+            }
+            .view.active {
+                display: block;
+            }
+
+            .readonly {
+                display: none;
+                margin-top: 10px;
+                padding: 10px 14px;
+                border: 1px solid rgba(0, 210, 255, 0.35);
+                border-radius: var(--radius);
+                background: rgba(0, 210, 255, 0.08);
+                color: #b0e4ff;
+                font-size: 0.88rem;
+                letter-spacing: 0.02em;
+            }
+            .readonly.show {
+                display: block;
+            }
+
+            /* ═══════════════════════════
+       HOME HERO
+    ═══════════════════════════ */
+            .home-hero {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) 360px;
+                gap: 14px;
+                align-items: stretch;
+            }
+
+            /* Glass panel base */
+            .hero-panel,
+            .feature-card,
+            .panel,
+            .final-card,
+            .team-list,
+            .roster-card {
+                border: 1px solid rgba(0, 210, 255, 0.16);
+                border-radius: var(--radius);
+                background: var(--panel);
+                box-shadow: var(--shadow);
+                backdrop-filter: blur(14px);
+                -webkit-backdrop-filter: blur(14px);
+            }
+
+            .hero-panel {
+                min-height: 360px;
+                padding: clamp(20px, 5vw, 50px);
+                display: grid;
+                align-content: center;
+                gap: 20px;
+                overflow: hidden;
+                position: relative;
+                border-top: 2px solid rgba(0, 210, 255, 0.45);
+            }
+            /* Right-side glow accent */
+            .hero-panel::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                right: 0;
+                width: 45%;
+                height: 100%;
+                background: radial-gradient(
+                    ellipse at right top,
+                    rgba(0, 210, 255, 0.07),
+                    transparent 70%
+                );
+                pointer-events: none;
+            }
+            /* Watermark text */
+            .hero-panel::after {
+                content: "IRON CREST";
+                position: absolute;
+                right: -12px;
+                bottom: 8px;
+                font-family: "Orbitron", sans-serif;
+                font-size: clamp(2.5rem, 8.5vw, 7.5rem);
+                font-weight: 900;
+                letter-spacing: 0.04em;
+                line-height: 0.85;
+                color: rgba(0, 210, 255, 0.03);
+                pointer-events: none;
+                text-transform: uppercase;
+                white-space: nowrap;
+            }
+
+            .hero-panel h2 {
+                font-family: "Orbitron", sans-serif;
+                font-size: clamp(1.7rem, 3.8vw, 3.6rem);
+                font-weight: 900;
+                line-height: 1;
+                letter-spacing: 0.02em;
+                text-transform: uppercase;
+                background: linear-gradient(
+                    120deg,
+                    #fff 0%,
+                    #aadcff 45%,
+                    #fff 100%
+                );
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+
+            .hero-panel p {
+                max-width: 680px;
+                color: var(--muted);
+                font-size: 1.02rem;
+                line-height: 1.65;
+            }
+
+            /* ═══════════════════════════
+       FEATURE CARDS
+    ═══════════════════════════ */
+            .feature-grid {
+                display: grid;
+                gap: 10px;
+            }
+
+            .feature-card {
+                padding: 16px;
+                text-align: left;
+                display: grid;
+                gap: 8px;
+                min-height: 112px;
+                background: rgba(4, 10, 20, 0.92);
+                cursor: pointer;
+                border: 1px solid rgba(0, 210, 255, 0.13);
+                border-left: 3px solid rgba(0, 210, 255, 0.5);
+                transition: all 0.2s ease;
+            }
+            .feature-card:hover {
+                border-left-color: var(--cyan);
+                background: rgba(0, 210, 255, 0.06);
+                box-shadow: var(--glow-cyan);
+                transform: translateX(4px);
+            }
+
+            .feature-card strong {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-family: "Rajdhani", sans-serif;
+                font-weight: 700;
+                font-size: 0.98rem;
+                letter-spacing: 0.05em;
+                text-transform: uppercase;
+                color: var(--cyan);
+            }
+
+            .feature-card span {
+                color: var(--muted);
+                line-height: 1.48;
+                font-size: 0.88rem;
+            }
+
+            /* ═══════════════════════════
+       TOOLBAR
+    ═══════════════════════════ */
+            .toolbar {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto;
+                gap: 12px;
+                align-items: center;
+                margin-bottom: 14px;
+            }
+
+            .toolbar h2 {
+                font-family: "Orbitron", sans-serif;
+                font-size: 0.92rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                color: var(--cyan);
+                text-shadow: var(--glow-cyan);
+            }
+
+            .editable-title {
+                display: grid;
+                grid-template-columns: minmax(170px, 340px) minmax(
+                        150px,
+                        260px
+                    );
+                gap: 10px;
+                align-items: center;
+            }
+
+            /* ═══════════════════════════
+       INPUTS
+    ═══════════════════════════ */
+            .title-input,
+            .field,
+            .select {
+                min-width: 0;
+                height: 38px;
+                border-radius: 3px;
+                border: 1px solid rgba(0, 210, 255, 0.22);
+                background: rgba(2, 5, 12, 0.88);
+                color: var(--text);
+                padding: 0 12px;
+                outline: 0;
+                font-family: "Rajdhani", sans-serif;
+                font-weight: 500;
+                font-size: 0.93rem;
+                transition:
+                    border-color 0.18s,
+                    box-shadow 0.18s;
+            }
+            .title-input {
+                font-family: "Orbitron", sans-serif;
+                font-weight: 700;
+                font-size: 0.72rem;
+                color: var(--gold);
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+            }
+            .title-input:focus,
+            .field:focus,
+            .select:focus {
+                border-color: var(--cyan);
+                box-shadow: 0 0 10px rgba(0, 210, 255, 0.28);
+            }
+            /* Fix select option text in dark mode */
+            .select option {
+                background: #080e1c;
+                color: var(--text);
+            }
+
+            .hint {
+                margin-top: 4px;
+                color: var(--muted);
+                font-size: 0.88rem;
+                line-height: 1.5;
+            }
+
+            /* ═══════════════════════════
+       BRACKET LAYOUT
+    ═══════════════════════════ */
+            .bracket-layout {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) 225px;
+                gap: 14px;
+                align-items: stretch;
+            }
+
+            .panel {
+                border-top: 1px solid rgba(0, 210, 255, 0.22);
+            }
+
+            .bracket-section {
+                padding: 14px;
+            }
+
+            .bracket-section + .bracket-section {
+                border-top: 1px solid rgba(255, 184, 0, 0.3);
+                margin-top: 4px;
+                padding-top: 18px;
+            }
+
+            .section-head {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 14px;
+            }
+
+            .section-title {
+                display: flex;
+                align-items: baseline;
+                gap: 10px;
+                min-width: 0;
+            }
+
+            .section-title h2 {
+                font-family: "Orbitron", sans-serif;
+                font-size: 0.82rem;
+                font-weight: 700;
+                color: var(--gold);
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                text-shadow: var(--glow-gold);
+            }
+
+            .team-count {
+                color: var(--muted);
+                font-size: 0.78rem;
+                letter-spacing: 0.02em;
+            }
+
+            /* Bracket scroll */
+            .bracket-scroll {
+                overflow-x: auto;
+                padding-bottom: 8px;
+            }
+            .bracket-scroll::-webkit-scrollbar {
+                height: 3px;
+            }
+            .bracket-scroll::-webkit-scrollbar-track {
+                background: rgba(0, 210, 255, 0.04);
+            }
+            .bracket-scroll::-webkit-scrollbar-thumb {
+                background: rgba(0, 210, 255, 0.3);
+                border-radius: 2px;
+            }
+
+            .bracket {
+                display: grid;
+                grid-auto-flow: column;
+                grid-auto-columns: minmax(180px, 1fr);
+                gap: 22px;
+                min-width: max-content;
+            }
+
+            .round {
+                display: flex;
+                flex-direction: column;
+                justify-content: space-around;
+                gap: 12px;
+                min-height: var(--round-height);
+            }
+
+            .round-label {
+                position: sticky;
+                top: 0;
+                z-index: 2;
+                padding: 4px 2px 8px;
+                font-family: "Orbitron", sans-serif;
+                font-size: 0.65rem;
+                text-transform: uppercase;
+                letter-spacing: 0.12em;
+                color: var(--muted);
+                background: rgba(4, 10, 20, 0.96);
+            }
+
+            .match {
+                position: relative;
+                display: grid;
+                align-content: center;
+                gap: 5px;
+                min-height: 86px;
+            }
+            .match::after {
+                content: "";
+                position: absolute;
+                right: -22px;
+                top: 50%;
+                width: 22px;
+                border-top: 1px solid rgba(0, 210, 255, 0.32);
+            }
+            .round:last-child .match::after {
+                display: none;
+            }
+
+            /* ═══════════════════════════
+       BRACKET SLOTS
+    ═══════════════════════════ */
+            .slot {
+                min-height: 38px;
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) 34px;
+                gap: 5px;
+                align-items: center;
+                padding: 4px 5px;
+                border: 1px solid rgba(0, 210, 255, 0.14);
+                border-radius: 3px;
+                background: rgba(2, 5, 14, 0.9);
+                transition: all 0.15s ease;
+            }
+            .slot.can-pick {
+                border-color: rgba(255, 184, 0, 0.58);
+                box-shadow: inset 0 0 10px rgba(255, 184, 0, 0.05);
+            }
+            .slot.winner {
+                border-color: rgba(0, 255, 140, 0.72);
+                background: rgba(0, 255, 140, 0.06);
+                box-shadow:
+                    0 0 8px rgba(0, 255, 140, 0.18),
+                    inset 0 0 10px rgba(0, 255, 140, 0.06);
+            }
+            .slot.empty {
+                opacity: 0.5;
+            }
+
+            /* Name button inside slot */
+            .name-button {
+                min-width: 0;
+                height: 28px;
+                padding: 0 6px;
+                border-radius: 3px;
+                text-align: left;
+                background: transparent;
+                display: flex;
+                align-items: center;
+                gap: 7px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                font-family: "Rajdhani", sans-serif;
+                font-weight: 600;
+                font-size: 0.85rem;
+                letter-spacing: 0.02em;
+            }
+            .name-text {
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .name-button:hover {
+                background: rgba(0, 210, 255, 0.07);
+            }
+
+            /* Team logo thumbnail */
+            .team-logo {
+                width: 22px;
+                height: 22px;
+                flex: 0 0 auto;
+                border-radius: 3px;
+                border: 1px solid rgba(0, 210, 255, 0.2);
+                background: linear-gradient(
+                    145deg,
+                    rgba(0, 210, 255, 0.14),
+                    rgba(255, 184, 0, 0.1)
+                );
+                object-fit: cover;
+                display: grid;
+                place-items: center;
+                color: var(--gold);
+                font-size: 0.62rem;
+                font-weight: 700;
+                text-transform: uppercase;
+            }
+
+            /* ═══════════════════════════
+       ICON BUTTONS  (OK / X / S)
+    ═══════════════════════════ */
+            .icon-btn {
+                width: 30px;
+                height: 28px;
+                border-radius: 3px;
+                border: 1px solid rgba(0, 210, 255, 0.18);
+                background: rgba(0, 210, 255, 0.05);
+                display: grid;
+                place-items: center;
+                font-family: "Rajdhani", sans-serif;
+                font-weight: 700;
+                font-size: 0.82rem;
+                line-height: 1;
+                transition: all 0.15s ease;
+            }
+            .icon-btn:hover:not(:disabled) {
+                transform: scale(1.08);
+            }
+
+            .icon-btn.pick {
+                color: var(--green);
+                border-color: rgba(0, 255, 140, 0.35);
+            }
+            .icon-btn.pick:hover:not(:disabled) {
+                box-shadow: var(--glow-green);
+            }
+            .icon-btn.remove {
+                color: var(--red);
+                border-color: rgba(255, 58, 58, 0.35);
+            }
+            .icon-btn.remove:hover:not(:disabled) {
+                box-shadow: var(--glow-red);
+            }
+            .icon-btn.swap {
+                color: var(--cyan);
+                border-color: rgba(0, 210, 255, 0.32);
+            }
+            .icon-btn.swap:hover:not(:disabled) {
+                box-shadow: var(--glow-cyan);
+            }
+
+            /* ═══════════════════════════
+       GRAND FINAL CARD
+    ═══════════════════════════ */
+            .final-card {
+                padding: 14px;
+                display: grid;
+                align-content: center;
+                gap: 10px;
+                min-height: 100%;
+                border-color: rgba(255, 184, 0, 0.28);
+                border-top: 2px solid var(--gold);
+            }
+
+            .final-title {
+                font-family: "Orbitron", sans-serif;
+                color: var(--gold);
+                text-align: center;
+                text-transform: uppercase;
+                font-size: 0.78rem;
+                letter-spacing: 0.14em;
+                text-shadow: var(--glow-gold);
+            }
+
+            .final-team,
+            .champion,
+            .vs {
+                border-radius: 3px;
+                border: 1px solid rgba(0, 210, 255, 0.18);
+                background: rgba(2, 5, 14, 0.9);
+                text-align: center;
+            }
+
+            .final-team {
+                min-height: 44px;
+                padding: 10px;
+                font-family: "Rajdhani", sans-serif;
+                font-weight: 600;
+                font-size: 0.92rem;
+                letter-spacing: 0.03em;
+                transition: all 0.2s ease;
+            }
+            .final-team:hover:not(:disabled) {
+                border-color: var(--gold);
+                box-shadow: var(--glow-gold);
+            }
+
+            .vs {
+                height: 46px;
+                display: grid;
+                place-items: center;
+                font-family: "Orbitron", sans-serif;
+                font-size: 1.15rem;
+                font-weight: 900;
+                letter-spacing: 0.12em;
+                background: rgba(2, 5, 14, 0.95);
+                color: var(--red);
+                text-shadow: var(--glow-red);
+            }
+
+            .champion {
+                padding: 12px;
+                border-color: rgba(255, 184, 0, 0.52);
+                background: rgba(255, 184, 0, 0.08);
+                color: var(--gold);
+                font-family: "Rajdhani", sans-serif;
+                font-weight: 700;
+                font-size: 0.9rem;
+                letter-spacing: 0.04em;
+            }
+
+            /* ═══════════════════════════
+       TEAM MANAGER
+    ═══════════════════════════ */
+            .team-manager {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) 310px;
+                gap: 14px;
+            }
+
+            .manager-list {
+                display: grid;
+                gap: 8px;
+            }
+
+            /* JS renders: name-input | bracket-select | 3× icon-btn */
+            .team-row,
+            .player-row {
+                display: grid;
+                grid-template-columns: minmax(140px, 1fr) 130px repeat(3, 34px);
+                gap: 7px;
+                align-items: center;
+                padding: 8px 10px;
+                border: 1px solid rgba(0, 210, 255, 0.14);
+                border-radius: 3px;
+                background: rgba(2, 5, 14, 0.88);
+                transition: border-color 0.18s ease;
+            }
+            .team-row:hover {
+                border-color: rgba(0, 210, 255, 0.32);
+            }
+
+            .logo-picker {
+                width: 34px;
+                height: 34px;
+                border-radius: 3px;
+                border: 1px solid rgba(0, 210, 255, 0.2);
+                background: rgba(0, 210, 255, 0.05);
+                display: grid;
+                place-items: center;
+                cursor: pointer;
+            }
+            .logo-picker input {
+                display: none;
+            }
+            .logo-picker .team-logo {
+                width: 24px;
+                height: 24px;
+            }
+
+            .small-label {
+                color: var(--muted);
+                font-size: 0.8rem;
+                letter-spacing: 0.02em;
+            }
+
+            /* ═══════════════════════════
+       SIDE BOX (bracket tools)
+    ═══════════════════════════ */
+            .side-box {
+                padding: 14px;
+                border: 1px solid rgba(0, 210, 255, 0.18);
+                border-radius: var(--radius);
+                background: var(--panel);
+                backdrop-filter: blur(14px);
+                box-shadow: var(--shadow);
+                align-self: start;
+                display: grid;
+                gap: 10px;
+            }
+            .side-box h2 {
+                font-family: "Orbitron", sans-serif;
+                font-size: 0.8rem;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                color: var(--cyan);
+            }
+
+            /* ═══════════════════════════
+       ROSTER WRAP
+    ═══════════════════════════ */
+            .roster-wrap {
+                display: grid;
+                grid-template-columns: 270px minmax(0, 1fr);
+                gap: 14px;
+            }
+
+            .team-list,
+            .roster-card {
+                padding: 14px;
+            }
+
+            .team-list h2,
+            .roster-card h2 {
+                font-family: "Orbitron", sans-serif;
+                font-size: 0.82rem;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                color: var(--cyan);
+                margin-bottom: 12px;
+            }
+
+            .team-link {
+                width: 100%;
+                min-height: 36px;
+                margin-bottom: 6px;
+                padding: 0 11px;
+                border: 1px solid rgba(0, 210, 255, 0.14);
+                border-left: 3px solid transparent;
+                border-radius: 3px;
+                background: rgba(2, 5, 14, 0.85);
+                text-align: left;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                font-family: "Rajdhani", sans-serif;
+                font-weight: 600;
+                font-size: 0.88rem;
+                letter-spacing: 0.03em;
+                transition: all 0.15s ease;
+            }
+            .team-link.active,
+            .team-link:hover {
+                border-left-color: var(--gold);
+                border-color: rgba(255, 184, 0, 0.55);
+                background: rgba(255, 184, 0, 0.07);
+                color: var(--gold);
+            }
+
+            .roster-head {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 14px;
+                padding-bottom: 12px;
+                border-bottom: 1px solid rgba(0, 210, 255, 0.14);
+            }
+
+            .players {
+                display: grid;
+                gap: 8px;
+            }
+
+            /* JS renders: label | name-input | X-btn */
+            .player-row {
+                grid-template-columns: 88px minmax(0, 1fr) 34px;
+            }
+
+            /* ═══════════════════════════
+       FRIENDS / PLAYERS VIEW
+    ═══════════════════════════ */
+            .friend-list {
+                display: grid;
+                gap: 8px;
+                margin-top: 14px;
+            }
+
+            /* JS renders: rank | input | X-btn */
+            .friend-row {
+                display: grid;
+                grid-template-columns: 38px minmax(0, 1fr) 34px;
+                gap: 7px;
+                align-items: center;
+                padding: 8px 10px;
+                border: 1px solid rgba(0, 210, 255, 0.14);
+                border-radius: 3px;
+                background: rgba(2, 5, 14, 0.88);
+                transition: border-color 0.18s ease;
+            }
+            .friend-row:hover {
+                border-color: rgba(0, 210, 255, 0.3);
+            }
+
+            .rank {
+                width: 32px;
+                height: 32px;
+                border-radius: 3px;
+                display: grid;
+                place-items: center;
+                background: rgba(255, 184, 0, 0.1);
+                border: 1px solid rgba(255, 184, 0, 0.28);
+                color: var(--gold);
+                font-family: "Orbitron", sans-serif;
+                font-weight: 700;
+                font-size: 0.7rem;
+            }
+
+            /* ═══════════════════════════
+       EMPTY STATE
+    ═══════════════════════════ */
+            .empty-state {
+                min-height: 180px;
+                display: grid;
+                place-items: center;
+                color: var(--muted);
+                text-align: center;
+                padding: 20px;
+                border: 1px dashed rgba(0, 210, 255, 0.2);
+                border-radius: var(--radius);
+            }
+
+            /* ═══════════════════════════
+       HOSTING / INFO BOX
+    ═══════════════════════════ */
+            .hosting {
+                margin-top: 14px;
+                padding: 14px;
+                border: 1px solid rgba(0, 210, 255, 0.14);
+                border-radius: var(--radius);
+                background: rgba(2, 5, 14, 0.72);
+                backdrop-filter: blur(8px);
+                color: var(--muted);
+                line-height: 1.58;
+                font-size: 0.88rem;
+            }
+            .hosting strong {
+                color: var(--text);
+            }
+
+            /* ═══════════════════════════
+       MODAL
+    ═══════════════════════════ */
+            .modal-backdrop {
+                position: fixed;
+                inset: 0;
+                z-index: 20;
+                display: none;
+                place-items: center;
+                padding: 16px;
+                background: rgba(0, 0, 0, 0.78);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+            }
+            .modal-backdrop.show {
+                display: grid;
+            }
+
+            .modal {
+                width: min(460px, 100%);
+                padding: 22px;
+                border: 1px solid rgba(255, 184, 0, 0.38);
+                border-top: 2px solid var(--gold);
+                border-radius: var(--radius);
+                background: rgba(3, 7, 16, 0.97);
+                box-shadow: var(--shadow), var(--glow-gold);
+                display: grid;
+                gap: 12px;
+                backdrop-filter: blur(18px);
+            }
+            .modal h2 {
+                font-family: "Orbitron", sans-serif;
+                color: var(--gold);
+                font-size: 1rem;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+            }
+            .modal-actions {
+                display: flex;
+                justify-content: flex-end;
+                gap: 8px;
+            }
+
+            /* Friends panel */
+            .panel.bracket-section {
+                padding: 16px;
+            }
+
+            /* Global scrollbar */
+            ::-webkit-scrollbar {
+                width: 5px;
+                height: 5px;
+            }
+            ::-webkit-scrollbar-track {
+                background: rgba(0, 0, 0, 0.28);
+            }
+            ::-webkit-scrollbar-thumb {
+                background: rgba(0, 210, 255, 0.22);
+                border-radius: 3px;
+            }
+            ::-webkit-scrollbar-thumb:hover {
+                background: rgba(0, 210, 255, 0.42);
+            }
+
+            /* ═══════════════════════════
+       RESPONSIVE
+    ═══════════════════════════ */
+            @media (max-width: 980px) {
+                .topbar,
+                .home-hero,
+                .toolbar,
+                .bracket-layout,
+                .team-manager,
+                .roster-wrap {
+                    grid-template-columns: 1fr;
+                }
+
+                .nav,
+                .actions,
+                .controls {
+                    justify-content: flex-start;
+                }
+                .editable-title {
+                    grid-template-columns: 1fr;
+                }
+                .final-card {
+                    min-height: auto;
+                }
+                .home-hero {
+                    gap: 12px;
+                }
+                .hero-panel {
+                    min-height: 280px;
+                }
+            }
+
+            @media (max-width: 680px) {
+                .app {
+                    padding: 10px;
+                }
+                .topbar {
+                    padding: 10px 12px;
+                }
+                .topbar,
+                .bracket-section,
+                .team-list,
+                .roster-card,
+                .side-box {
+                    padding: 10px;
+                }
+                .section-head,
+                .roster-head {
+                    flex-direction: column;
+                    align-items: flex-start;
+                }
+                .team-row {
+                    grid-template-columns: 1fr 110px 34px 34px 34px;
+                }
+                .player-row {
+                    grid-template-columns: 1fr 34px;
+                }
+                .player-row .small-label {
+                    grid-column: 1 / -1;
+                }
+                h1 {
+                    font-size: 1.05rem;
+                }
+                .hero-panel h2 {
+                    font-size: 1.55rem;
+                }
+                .btn {
+                    font-size: 0.82rem;
+                    padding: 0 10px;
+                    min-height: 34px;
+                }
+                .editable-title {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            @media (max-width: 440px) {
+                .team-row {
+                    grid-template-columns: 1fr 34px 34px 34px;
+                }
+                .team-row select {
+                    display: none;
+                }
+                .friend-row {
+                    grid-template-columns: 32px 1fr 34px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <main class="app">
+            <!-- ══════════ TOP BAR ══════════ -->
+            <header class="topbar">
+                <div class="brand">
+                    <div class="crest" aria-hidden="true">⚔️💀</div>
+                    <div>
+                        <h1 id="appTitle">Iron Crest League</h1>
+                        <p class="subtitle" id="appSubtitle">
+                            Tournament bracket manager — any game, zero backend.
+                        </p>
+                    </div>
+                </div>
+                <nav class="nav">
+                    <button class="btn" data-route="home" type="button">
+                        🏠 Home
+                    </button>
+                    <button class="btn" data-route="league" type="button">
+                        🏆 League
+                    </button>
+                    <button class="btn" data-route="friends" type="button">
+                        🎮 Players
+                    </button>
+                </nav>
+            </header>
+
+            <div class="readonly" id="readOnlyBanner">
+                Editable shared copy loaded — changes save in this browser only.
+                Create a new share link to send your edits back.
             </div>
-            <div class="bracket-scroll"><div class="bracket" id="highBracket"></div></div>
-          </section>
-          <section class="bracket-section">
-            <div class="section-head">
-              <div class="section-title">
-                <h2>Lower Bracket</h2>
-                <span class="team-count" id="lowCount"></span>
-              </div>
+
+            <!-- ══════════════════════════
+         HOME VIEW
+    ══════════════════════════ -->
+            <section class="view active" id="homeView">
+                <div class="home-hero">
+                    <div class="hero-panel">
+                        <h2>Forge your bracket. Dominate the arena.</h2>
+                        <p>
+                            Create a tournament for any game. Manage teams,
+                            rosters, and brackets — advance winners round by
+                            round, then share a live editable link with your
+                            squad. Everything runs inside one self-contained
+                            file.
+                        </p>
+                        <div class="actions">
+                            <button
+                                class="btn gold"
+                                data-route="league"
+                                type="button"
+                            >
+                                🏆 Clan / Team tournament
+                            </button>
+                            <button
+                                class="btn cyan"
+                                data-route="friends"
+                                type="button"
+                            >
+                                🎮 Player competition
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="feature-grid">
+                        <button
+                            class="feature-card"
+                            data-route="league"
+                            type="button"
+                        >
+                            <strong>🏆 League / Tournament</strong>
+                            <span
+                                >Clan wars, team cups, double-bracket events.
+                                Add squads, swap brackets, manage full rosters,
+                                pick winners.</span
+                            >
+                        </button>
+                        <button
+                            class="feature-card"
+                            data-route="friends"
+                            type="button"
+                        >
+                            <strong>🎮 Friends Competition</strong>
+                            <span
+                                >Quick ranked list for solo players. Start with
+                                four slots, add more, remove entries — all saved
+                                locally.</span
+                            >
+                        </button>
+                        <div class="feature-card">
+                            <strong>🔗 Share Without a Server</strong>
+                            <span
+                                >Generate an editable snapshot link. Anyone can
+                                view, change their copy, and share a new link
+                                back.</span
+                            >
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ══════════════════════════
+         LEAGUE / BRACKET VIEW
+    ══════════════════════════ -->
+            <section class="view" id="leagueView">
+                <div class="toolbar">
+                    <div>
+                        <div class="editable-title">
+                            <input
+                                class="title-input"
+                                id="leagueNameInput"
+                                aria-label="League name"
+                            />
+                            <input
+                                class="title-input"
+                                id="gameNameInput"
+                                aria-label="Game name"
+                            />
+                        </div>
+                        <p class="hint">
+                            Manage slots on the Teams page. Click
+                            <strong>OK</strong> to advance a winner. Click a
+                            team name to edit its roster.
+                        </p>
+                    </div>
+                    <div class="controls">
+                        <button
+                            class="btn gold"
+                            data-route="teams"
+                            type="button"
+                        >
+                            🛡️ Manage Teams
+                        </button>
+                        <button class="btn cyan" id="shareBtn" type="button">
+                            🔗 Share Editable
+                        </button>
+                        <button
+                            class="btn danger"
+                            id="resetLeagueBtn"
+                            type="button"
+                        >
+                            ⚠ Reset League
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bracket-layout">
+                    <div class="panel">
+                        <section class="bracket-section">
+                            <div class="section-head">
+                                <div class="section-title">
+                                    <h2>Higher Bracket</h2>
+                                    <span
+                                        class="team-count"
+                                        id="highCount"
+                                    ></span>
+                                </div>
+                            </div>
+                            <div class="bracket-scroll">
+                                <div class="bracket" id="highBracket"></div>
+                            </div>
+                        </section>
+                        <section class="bracket-section">
+                            <div class="section-head">
+                                <div class="section-title">
+                                    <h2>Lower Bracket</h2>
+                                    <span
+                                        class="team-count"
+                                        id="lowCount"
+                                    ></span>
+                                </div>
+                            </div>
+                            <div class="bracket-scroll">
+                                <div class="bracket" id="lowBracket"></div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <aside class="final-card">
+                        <h2 class="final-title">⚡ Grand Final</h2>
+                        <div class="vs-box" id="finalBox"></div>
+                    </aside>
+                </div>
+            </section>
+
+            <!-- ══════════════════════════
+         TEAMS MANAGER VIEW
+    ══════════════════════════ -->
+            <section class="view" id="teamsView">
+                <div class="toolbar">
+                    <div>
+                        <h2>🛡️ Manage Teams</h2>
+                        <p class="hint">
+                            Add, rename, move, or remove teams. Removing a team
+                            also wipes its roster and clears affected bracket
+                            picks.
+                        </p>
+                    </div>
+                    <div class="controls">
+                        <button class="btn" data-route="league" type="button">
+                            ← Back to Bracket
+                        </button>
+                        <button class="btn gold" id="addTeamBtn" type="button">
+                            + Add Team
+                        </button>
+                    </div>
+                </div>
+                <div class="team-manager">
+                    <div class="manager-list" id="teamRows"></div>
+                    <aside class="side-box">
+                        <h2>Bracket Tools</h2>
+                        <p class="hint">
+                            Select two teams and hit Swap to exchange their
+                            bracket positions without changing sizes.
+                        </p>
+                        <select class="select" id="swapA"></select>
+                        <select class="select" id="swapB"></select>
+                        <button class="btn cyan" id="swapBtn" type="button">
+                            ⇄ Swap Selected Teams
+                        </button>
+                    </aside>
+                </div>
+            </section>
+
+            <!-- ══════════════════════════
+         ROSTER VIEW
+    ══════════════════════════ -->
+            <section class="view" id="rosterView">
+                <div class="toolbar">
+                    <p class="hint">
+                        Each team has up to 15 player slots. Leave a slot blank
+                        or hit <strong>X</strong> to clear it.
+                    </p>
+                    <button class="btn" data-route="league" type="button">
+                        ← Back to Bracket
+                    </button>
+                </div>
+                <div class="roster-wrap">
+                    <aside class="team-list">
+                        <h2>Teams</h2>
+                        <div id="teamList"></div>
+                    </aside>
+                    <section class="roster-card" id="rosterCard"></section>
+                </div>
+            </section>
+
+            <!-- ══════════════════════════
+         FRIENDS / PLAYERS VIEW
+    ══════════════════════════ -->
+            <section class="view" id="friendsView">
+                <div class="toolbar">
+                    <div>
+                        <div class="editable-title">
+                            <input
+                                class="title-input"
+                                id="eventNameInput"
+                                aria-label="Event name"
+                            />
+                        </div>
+                        <p class="hint">
+                            Ranked competition list for solo players. Start with
+                            four slots, add more anytime.
+                        </p>
+                    </div>
+                    <div class="controls">
+                        <button
+                            class="btn gold"
+                            id="addFriendBtn"
+                            type="button"
+                        >
+                            + Add Player
+                        </button>
+                        <button
+                            class="btn danger"
+                            id="resetFriendsBtn"
+                            type="button"
+                        >
+                            ⚠ Reset Event
+                        </button>
+                    </div>
+                </div>
+                <div class="panel bracket-section">
+                    <div class="friend-list" id="friendList"></div>
+                </div>
+            </section>
+        </main>
+
+        <!-- ══════════════════════════
+       MODAL DIALOG
+  ══════════════════════════ -->
+        <div
+            class="modal-backdrop"
+            id="modalBackdrop"
+            role="dialog"
+            aria-modal="true"
+        >
+            <div class="modal">
+                <h2 id="modalTitle"></h2>
+                <p class="hint" id="modalText"></p>
+                <input class="field" id="modalInput" />
+                <div class="modal-actions">
+                    <button class="btn" id="modalCancel" type="button">
+                        Later
+                    </button>
+                    <button class="btn gold" id="modalOk" type="button">
+                        Save
+                    </button>
+                </div>
             </div>
-            <div class="bracket-scroll"><div class="bracket" id="lowBracket"></div></div>
-          </section>
         </div>
-        <aside class="final-card">
-          <h2 class="final-title">Grand Final</h2>
-          <div class="vs-box" id="finalBox"></div>
-        </aside>
-      </div>
-    </section>
-
-    <section class="view" id="teamsView">
-      <div class="toolbar">
-        <div>
-          <h2>🛡️ Manage teams</h2>
-          <p class="hint">Add, edit, remove, move, or swap teams. Removing a team also removes its roster and clears affected bracket progress.</p>
-        </div>
-        <div class="controls">
-          <button class="btn" data-route="league" type="button">Back to bracket</button>
-          <button class="btn gold" id="addTeamBtn" type="button">Add team</button>
-        </div>
-      </div>
-      <div class="team-manager">
-        <div class="manager-list" id="teamRows"></div>
-        <aside class="side-box">
-          <h2>Bracket tools</h2>
-          <p class="hint">Move changes one team to the other bracket. Swap exchanges two teams while keeping the bracket sizes stable.</p>
-          <select class="select" id="swapA"></select>
-          <select class="select" id="swapB"></select>
-          <button class="btn cyan" id="swapBtn" type="button">Swap selected teams</button>
-        </aside>
-      </div>
-    </section>
-
-    <section class="view" id="rosterView">
-      <div class="toolbar">
-        <p class="hint">Each team has five player slots. Leave a slot empty or use X to clear it.</p>
-        <button class="btn" data-route="league" type="button">Back to bracket</button>
-      </div>
-      <div class="roster-wrap">
-        <aside class="team-list">
-          <h2>Teams</h2>
-          <div id="teamList"></div>
-        </aside>
-        <section class="roster-card" id="rosterCard"></section>
-      </div>
-    </section>
-
-    <section class="view" id="friendsView">
-      <div class="toolbar">
-        <div>
-          <div class="editable-title">
-            <input class="title-input" id="eventNameInput" aria-label="Event name">
-          </div>
-          <p class="hint">Simple competition list for players or friends. Start with four boxes, add more when needed.</p>
-        </div>
-        <div class="controls">
-          <button class="btn gold" id="addFriendBtn" type="button">Add player</button>
-          <button class="btn danger" id="resetFriendsBtn" type="button">Reset event</button>
-        </div>
-      </div>
-      <div class="panel bracket-section">
-        <div class="friend-list" id="friendList"></div>
-      </div>
-    </section>
-  </main>
-
-  <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true">
-    <div class="modal">
-      <h2 id="modalTitle"></h2>
-      <p class="hint" id="modalText"></p>
-      <input class="field" id="modalInput">
-      <div class="modal-actions">
-        <button class="btn" id="modalCancel" type="button">Later</button>
-        <button class="btn gold" id="modalOk" type="button">Save</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const CONFIG = {
-      storageKey: "bracket-forge-v2",
-      oldStorageKey: "iron-crest-league-v1",
-      defaultHigh: 16,
-      defaultLow: 8,
-      rosterSize: 15,
-      initialFriends: 4
-    };
-
-    const fallbackNames = [
-      "ELT", "S2G", "ZR", "MAX A", "RD", "eG", "AoH", "YMT",
-      "MGA", "SSG", "RCM", "ZK", "FxT", "Hallow", "MAX", "GMS"
-    ];
-
-    const state = loadState();
-    const readOnly = loadSharedStateIfPresent();
-
-    const els = {
-      views: {
-        home: document.getElementById("homeView"),
-        league: document.getElementById("leagueView"),
-        teams: document.getElementById("teamsView"),
-        roster: document.getElementById("rosterView"),
-        friends: document.getElementById("friendsView")
-      },
-      appTitle: document.getElementById("appTitle"),
-      appSubtitle: document.getElementById("appSubtitle"),
-      readOnlyBanner: document.getElementById("readOnlyBanner"),
-      leagueNameInput: document.getElementById("leagueNameInput"),
-      gameNameInput: document.getElementById("gameNameInput"),
-      highBracket: document.getElementById("highBracket"),
-      lowBracket: document.getElementById("lowBracket"),
-      highCount: document.getElementById("highCount"),
-      lowCount: document.getElementById("lowCount"),
-      finalBox: document.getElementById("finalBox"),
-      teamRows: document.getElementById("teamRows"),
-      swapA: document.getElementById("swapA"),
-      swapB: document.getElementById("swapB"),
-      teamList: document.getElementById("teamList"),
-      rosterCard: document.getElementById("rosterCard"),
-      eventNameInput: document.getElementById("eventNameInput"),
-      friendList: document.getElementById("friendList"),
-      modalBackdrop: document.getElementById("modalBackdrop"),
-      modalTitle: document.getElementById("modalTitle"),
-      modalText: document.getElementById("modalText"),
-      modalInput: document.getElementById("modalInput"),
-      modalCancel: document.getElementById("modalCancel"),
-      modalOk: document.getElementById("modalOk")
-    };
-
-    document.querySelectorAll("[data-route]").forEach(button => {
-      button.addEventListener("click", () => navigate(button.dataset.route));
-    });
-    document.getElementById("addTeamBtn").addEventListener("click", addTeam);
-    document.getElementById("swapBtn").addEventListener("click", swapSelectedTeams);
-    document.getElementById("shareBtn").addEventListener("click", createShareLink);
-    document.getElementById("resetLeagueBtn").addEventListener("click", resetLeague);
-    document.getElementById("addFriendBtn").addEventListener("click", addFriend);
-    document.getElementById("resetFriendsBtn").addEventListener("click", resetFriends);
-
-    els.leagueNameInput.addEventListener("input", event => updateMeta("leagueName", event.target.value));
-    els.gameNameInput.addEventListener("input", event => updateMeta("gameName", event.target.value));
-    els.eventNameInput.addEventListener("input", event => updateFriendsName(event.target.value));
-    window.addEventListener("hashchange", routeFromHash);
-
-    applyReadOnlyMode();
-    routeFromHash();
-    renderAll();
-
-    function uid() {
-      if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
-      return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
-    }
-
-    function createTeam(name = "", bracket = "high") {
-      return { id: "team-" + uid(), name, bracket, players: Array(CONFIG.rosterSize).fill("") };
-    }
-
-    function defaultState() {
-      const high = Array.from({ length: CONFIG.defaultHigh }, (_, index) => createTeam(fallbackNames[index] || "", "high"));
-      const low = Array.from({ length: CONFIG.defaultLow }, () => createTeam("", "low"));
-      return {
-        meta: { leagueName: "", gameName: "" },
-        teams: [...high, ...low],
-        highSlots: high.map(team => team.id),
-        lowSlots: low.map(team => team.id),
-        picks: {},
-        finalWinner: null,
-        selectedTeamId: high[0].id,
-        friends: { eventName: "", players: Array(CONFIG.initialFriends).fill("") }
-      };
-    }
-
-    function normalizeState(raw) {
-      const base = defaultState();
-      const next = { ...base, ...raw };
-      next.meta = { ...base.meta, ...(raw.meta || {}) };
-      next.friends = { ...base.friends, ...(raw.friends || {}) };
-      next.teams = Array.isArray(raw.teams) ? raw.teams : base.teams;
-      next.teams.forEach(team => {
-        if (!team.id) team.id = "team-" + uid();
-        if (!team.bracket) team.bracket = next.lowSlots?.includes(team.id) ? "low" : "high";
-        if (!Array.isArray(team.players)) team.players = [];
-        team.players = team.players.slice(0, CONFIG.rosterSize);
-        while (team.players.length < CONFIG.rosterSize) team.players.push("");
-      });
-      next.highSlots = Array.isArray(raw.highSlots) ? raw.highSlots.filter(id => teamByIdFrom(next.teams, id)) : next.teams.filter(t => t.bracket === "high").map(t => t.id);
-      next.lowSlots = Array.isArray(raw.lowSlots) ? raw.lowSlots.filter(id => teamByIdFrom(next.teams, id)) : next.teams.filter(t => t.bracket === "low").map(t => t.id);
-      next.teams.forEach(team => {
-        if (!next.highSlots.includes(team.id) && !next.lowSlots.includes(team.id)) {
-          next[team.bracket === "low" ? "lowSlots" : "highSlots"].push(team.id);
-        }
-      });
-      if (!Array.isArray(next.friends.players)) next.friends.players = Array(CONFIG.initialFriends).fill("");
-      while (next.friends.players.length < CONFIG.initialFriends) next.friends.players.push("");
-      next.picks = raw.picks || {};
-      return next;
-    }
-
-    function loadState() {
-      try {
-        const saved = JSON.parse(localStorage.getItem(CONFIG.storageKey));
-        if (saved) return normalizeState(saved);
-      } catch (error) {
-        console.warn("Could not load saved data", error);
-      }
-      try {
-        const old = JSON.parse(localStorage.getItem(CONFIG.oldStorageKey));
-        if (old) {
-          old.meta = { leagueName: "IRON CREST LEAGUE", gameName: "Blockpost Mobile" };
-          old.friends = { eventName: "", players: Array(CONFIG.initialFriends).fill("") };
-          return normalizeState(old);
-        }
-      } catch (error) {
-        console.warn("Could not migrate old data", error);
-      }
-      return defaultState();
-    }
-
-    function loadSharedStateIfPresent() {
-      const hash = location.hash.replace(/^#/, "");
-      if (!hash.startsWith("share=")) return false;
-      try {
-        const shared = JSON.parse(decodeURIComponent(escape(atob(hash.slice(6)))));
-        Object.keys(state).forEach(key => delete state[key]);
-        Object.assign(state, normalizeState(shared));
-        return true;
-      } catch (error) {
-        alert("This share link could not be opened.");
-        return false;
-      }
-    }
-
-    function saveState() {
-      if (!readOnly) localStorage.setItem(CONFIG.storageKey, JSON.stringify(state));
-    }
-
-    function teamByIdFrom(teams, id) {
-      return teams.find(team => team.id === id) || null;
-    }
-
-    function teamById(id) {
-      return teamByIdFrom(state.teams, id);
-    }
-
-    function displayName(id) {
-      const team = teamById(id);
-      return team && team.name.trim() ? team.name.trim() : "Unnamed team";
-    }
-
-    function hasName(id) {
-      const team = teamById(id);
-      return Boolean(team && team.name.trim());
-    }
-
-    function navigate(route, teamId) {
-      const hash = teamId ? `${route}/${encodeURIComponent(teamId)}` : route;
-      location.hash = hash;
-      routeFromHash();
-    }
-
-    function routeFromHash() {
-      const hash = location.hash.replace(/^#/, "");
-      if (hash.startsWith("share=")) return showView("league");
-      if (hash.startsWith("roster/")) {
-        const id = decodeURIComponent(hash.slice(7));
-        if (teamById(id)) state.selectedTeamId = id;
-        return showView("roster");
-      }
-      const route = ["home", "league", "teams", "friends"].includes(hash) ? hash : "home";
-      showView(route);
-    }
-
-    function showView(route) {
-      Object.values(els.views).forEach(view => view.classList.remove("active"));
-      els.views[route].classList.add("active");
-      if (route === "league") askForLeagueName();
-      if (route === "friends") askForEventName();
-      renderAll();
-    }
-
-    function promptBox({ title, text, value, placeholder, onSave }) {
-      els.modalTitle.textContent = title;
-      els.modalText.textContent = text;
-      els.modalInput.value = value || "";
-      els.modalInput.placeholder = placeholder || "";
-      els.modalBackdrop.classList.add("show");
-      els.modalInput.focus();
-      const close = () => {
-        els.modalBackdrop.classList.remove("show");
-        els.modalOk.onclick = null;
-        els.modalCancel.onclick = null;
-      };
-      els.modalOk.onclick = () => {
-        const typed = els.modalInput.value.trim();
-        if (typed) onSave(typed);
-        close();
-        renderAll();
-      };
-      els.modalCancel.onclick = close;
-    }
-
-    function askForLeagueName() {
-      if (readOnly || state.meta.leagueName.trim()) return;
-      promptBox({
-        title: "Name your league",
-        text: "Give this tournament a name. You can edit it later from the bracket page.",
-        placeholder: "Example: Iron Crest League",
-        onSave: value => {
-          state.meta.leagueName = value;
-          if (!state.meta.gameName.trim()) state.meta.gameName = "Your Game";
-          saveState();
-        }
-      });
-    }
-
-    function askForEventName() {
-      if (readOnly || state.friends.eventName.trim()) return;
-      promptBox({
-        title: "Name your event",
-        text: "Create a simple competition list for your players or friends.",
-        placeholder: "Example: Friday Aim Duel",
-        onSave: value => {
-          state.friends.eventName = value;
-          saveState();
-        }
-      });
-    }
-
-    function applyReadOnlyMode() {
-      els.readOnlyBanner.classList.toggle("show", readOnly);
-      if (!readOnly) return;
-      document.querySelectorAll("input, select, button").forEach(el => {
-        if (el.dataset.route === "home" || el.dataset.route === "league" || el.dataset.route === "friends") return;
-        if (el.id === "shareBtn") return;
-        el.disabled = true;
-      });
-    }
-
-    function updateMeta(key, value) {
-      state.meta[key] = value;
-      saveState();
-      renderHeader();
-    }
-
-    function updateFriendsName(value) {
-      state.friends.eventName = value;
-      saveState();
-      renderHeader();
-    }
-
-    function renderAll() {
-      renderHeader();
-      renderLeagueInputs();
-      renderBracket("high", state.highSlots, els.highBracket, els.highCount);
-      renderBracket("low", state.lowSlots, els.lowBracket, els.lowCount);
-      renderFinal();
-      renderTeamManager();
-      renderRosters();
-      renderFriends();
-      applyReadOnlyMode();
-    }
-
-    function renderHeader() {
-      const league = state.meta.leagueName.trim();
-      const game = state.meta.gameName.trim();
-      els.appTitle.textContent = league || "Bracket Forge";
-      els.appSubtitle.textContent = game ? `${game} tournament manager` : "A frontend-only tournament board for any game.";
-      document.title = league || "Bracket Forge";
-    }
-
-    function renderLeagueInputs() {
-      els.leagueNameInput.value = state.meta.leagueName;
-      els.gameNameInput.value = state.meta.gameName;
-      els.leagueNameInput.placeholder = "League name";
-      els.gameNameInput.placeholder = "Game name";
-      els.eventNameInput.value = state.friends.eventName;
-      els.eventNameInput.placeholder = "Event name";
-    }
-
-    function bracketKey(bracket) {
-      return bracket === "low" ? "lowSlots" : "highSlots";
-    }
-
-    function clearProgress(bracket) {
-      Object.keys(state.picks).forEach(key => {
-        if (key.startsWith(bracket + "-")) delete state.picks[key];
-      });
-      state.finalWinner = null;
-    }
-
-    function addTeam() {
-      if (readOnly) return;
-      const team = createTeam("", "high");
-      state.teams.push(team);
-      state.highSlots.push(team.id);
-      clearProgress("high");
-      saveState();
-      renderAll();
-    }
-
-    function removeTeam(id) {
-      if (readOnly) return;
-      const team = teamById(id);
-      if (!team || !confirm(`Remove ${displayName(id)} from this league?`)) return;
-      state.highSlots = state.highSlots.filter(teamId => teamId !== id);
-      state.lowSlots = state.lowSlots.filter(teamId => teamId !== id);
-      state.teams = state.teams.filter(item => item.id !== id);
-      Object.keys(state.picks).forEach(key => {
-        if (state.picks[key] === id) delete state.picks[key];
-      });
-      if (state.finalWinner === id) state.finalWinner = null;
-      if (state.selectedTeamId === id) state.selectedTeamId = firstTeamId();
-      saveState();
-      renderAll();
-    }
-
-    function firstTeamId() {
-      return [...state.highSlots, ...state.lowSlots].find(id => teamById(id)) || null;
-    }
-
-    function setTeamName(id, value) {
-      const team = teamById(id);
-      if (!team) return;
-      team.name = value;
-      saveState();
-      renderHeader();
-      renderFinal();
-      renderRosters();
-    }
-
-    function moveTeam(id, bracket) {
-      if (readOnly) return;
-      const team = teamById(id);
-      if (!team || team.bracket === bracket) return;
-      state.highSlots = state.highSlots.filter(teamId => teamId !== id);
-      state.lowSlots = state.lowSlots.filter(teamId => teamId !== id);
-      state[bracketKey(bracket)].push(id);
-      team.bracket = bracket;
-      clearProgress("high");
-      clearProgress("low");
-      saveState();
-      renderAll();
-    }
-
-    function swapSelectedTeams() {
-      if (readOnly) return;
-      swapTeams(els.swapA.value, els.swapB.value);
-    }
-
-    function swapTeams(a, b) {
-      if (!a || !b || a === b) return;
-      const teamA = teamById(a);
-      const teamB = teamById(b);
-      if (!teamA || !teamB) return;
-      const aBracket = teamA.bracket;
-      const bBracket = teamB.bracket;
-      replaceSlot(bracketKey(aBracket), a, b);
-      replaceSlot(bracketKey(bBracket), b, a);
-      teamA.bracket = bBracket;
-      teamB.bracket = aBracket;
-      clearProgress("high");
-      clearProgress("low");
-      saveState();
-      renderAll();
-    }
-
-    function replaceSlot(key, oldId, newId) {
-      const index = state[key].indexOf(oldId);
-      if (index >= 0) state[key][index] = newId;
-    }
-
-    function renderTeamManager() {
-      els.teamRows.innerHTML = "";
-      const teams = [...state.highSlots, ...state.lowSlots].map(teamById).filter(Boolean);
-      teams.forEach(team => {
-        const row = document.createElement("div");
-        row.className = "team-row";
-        const name = document.createElement("input");
-        name.className = "field";
-        name.placeholder = "Team name";
-        name.value = team.name;
-        name.addEventListener("input", event => setTeamName(team.id, event.target.value));
-        const bracket = document.createElement("select");
-        bracket.className = "select";
-        bracket.innerHTML = '<option value="high">Higher</option><option value="low">Lower</option>';
-        bracket.value = team.bracket;
-        bracket.addEventListener("change", event => moveTeam(team.id, event.target.value));
-        const roster = iconButton("P", "Open players", () => navigate("roster", team.id));
-        const move = iconButton("S", "Swap with selected", () => {
-          els.swapA.value = team.id;
-          els.swapA.focus();
-        }, "swap");
-        const remove = iconButton("X", "Remove team", () => removeTeam(team.id), "remove");
-        row.append(name, bracket, roster, move, remove);
-        els.teamRows.appendChild(row);
-      });
-
-      fillTeamSelect(els.swapA, teams);
-      fillTeamSelect(els.swapB, teams);
-    }
-
-    function fillTeamSelect(select, teams) {
-      const old = select.value;
-      select.innerHTML = "";
-      teams.forEach(team => {
-        const option = document.createElement("option");
-        option.value = team.id;
-        option.textContent = `${displayName(team.id)} (${team.bracket === "high" ? "Higher" : "Lower"})`;
-        select.appendChild(option);
-      });
-      if (teams.some(team => team.id === old)) select.value = old;
-    }
-
-    function iconButton(text, title, onClick, extraClass = "") {
-      const button = document.createElement("button");
-      button.className = `icon-btn ${extraClass}`;
-      button.type = "button";
-      button.textContent = text;
-      button.title = title;
-      button.addEventListener("click", onClick);
-      return button;
-    }
-
-    function pickKey(bracket, roundIndex, matchIndex) {
-      return `${bracket}-${roundIndex}-${matchIndex}`;
-    }
-
-    function buildRounds(slotIds, bracket) {
-      const rounds = [slotIds.slice()];
-      let current = slotIds.slice();
-      let roundIndex = 0;
-      while (current.length > 1) {
-        const next = [];
-        for (let index = 0; index < current.length; index += 2) {
-          const left = current[index] || null;
-          const right = current[index + 1] || null;
-          const saved = state.picks[pickKey(bracket, roundIndex, index / 2)];
-          let winner = null;
-          if (saved && (saved === left || saved === right)) winner = saved;
-          else if (left && !right) winner = left;
-          next.push(winner);
-        }
-        rounds.push(next);
-        current = next;
-        roundIndex += 1;
-      }
-      return rounds;
-    }
-
-    function renderBracket(bracket, slots, container, countEl) {
-      const rounds = buildRounds(slots, bracket);
-      countEl.textContent = `${slots.length} teams`;
-      container.style.setProperty("--round-height", `${Math.max(120, Math.ceil(slots.length / 2) * 92)}px`);
-      container.innerHTML = "";
-      rounds.forEach((round, roundIndex) => {
-        const roundEl = document.createElement("div");
-        roundEl.className = "round";
-        const label = document.createElement("div");
-        label.className = "round-label";
-        label.textContent = roundIndex === 0 ? "Round 1" : round.length === 1 ? "Finalist" : `Round ${roundIndex + 1}`;
-        roundEl.appendChild(label);
-
-        if (round.length === 1 && roundIndex > 0) {
-          const match = document.createElement("div");
-          match.className = "match";
-          match.appendChild(renderReadOnlySlot(round[0]));
-          roundEl.appendChild(match);
-        } else {
-          for (let index = 0; index < round.length; index += 2) {
-            const match = document.createElement("div");
-            match.className = "match";
-            const left = round[index] || null;
-            const right = round[index + 1] || null;
-            const matchIndex = Math.floor(index / 2);
-            match.appendChild(renderPickSlot(bracket, roundIndex, matchIndex, left, right));
-            if (right || index + 1 < round.length) match.appendChild(renderPickSlot(bracket, roundIndex, matchIndex, right, left));
-            roundEl.appendChild(match);
-          }
-        }
-        container.appendChild(roundEl);
-      });
-    }
-
-    function renderReadOnlySlot(id) {
-      const slot = document.createElement("div");
-      slot.className = "slot" + (id ? "" : " empty");
-      const name = document.createElement("button");
-      name.className = "name-button";
-      name.type = "button";
-      name.textContent = id ? displayName(id) : "Waiting";
-      name.disabled = !id;
-      name.addEventListener("click", () => id && navigate("roster", id));
-      const spacer = document.createElement("span");
-      slot.append(name, spacer);
-      return slot;
-    }
-
-    function renderPickSlot(bracket, roundIndex, matchIndex, id, opponentId) {
-      const key = pickKey(bracket, roundIndex, matchIndex);
-      const canPick = Boolean(id && (!opponentId || (hasName(id) && hasName(opponentId))));
-      const slot = document.createElement("div");
-      slot.className = "slot" + (id ? "" : " empty");
-      slot.classList.toggle("can-pick", canPick);
-      slot.classList.toggle("winner", state.picks[key] === id && Boolean(id));
-      const name = document.createElement("button");
-      name.className = "name-button";
-      name.type = "button";
-      name.textContent = id ? displayName(id) : "Waiting";
-      name.disabled = !id;
-      name.addEventListener("click", event => {
-        event.stopPropagation();
-        if (id) navigate("roster", id);
-      });
-      const pick = iconButton("OK", "Move team forward", event => {
-        if (event.stopPropagation) event.stopPropagation();
-        chooseWinner(bracket, roundIndex, matchIndex, id);
-      }, "pick");
-      pick.disabled = !canPick || readOnly;
-      slot.append(name, pick);
-      if (canPick && !readOnly) slot.addEventListener("click", () => chooseWinner(bracket, roundIndex, matchIndex, id));
-      return slot;
-    }
-
-    function chooseWinner(bracket, roundIndex, matchIndex, id) {
-      if (readOnly || !id) return;
-      const rounds = buildRounds(state[bracketKey(bracket)], bracket);
-      const pair = [rounds[roundIndex][matchIndex * 2], rounds[roundIndex][matchIndex * 2 + 1]].filter(Boolean);
-      if (!pair.includes(id)) return;
-      if (pair.length === 2 && !pair.every(hasName)) return;
-      state.picks[pickKey(bracket, roundIndex, matchIndex)] = id;
-      Object.keys(state.picks).forEach(key => {
-        if (!key.startsWith(bracket + "-")) return;
-        const [, roundText] = key.split("-");
-        if (Number(roundText) > roundIndex) delete state.picks[key];
-      });
-      state.finalWinner = null;
-      saveState();
-      renderAll();
-    }
-
-    function lastWinner(bracket) {
-      const rounds = buildRounds(state[bracketKey(bracket)], bracket);
-      return rounds[rounds.length - 1][0] || null;
-    }
-
-    function renderFinal() {
-      const highWinner = lastWinner("high");
-      const lowWinner = lastWinner("low");
-      const champion = state.finalWinner && [highWinner, lowWinner].includes(state.finalWinner) ? state.finalWinner : null;
-      els.finalBox.innerHTML = "";
-      els.finalBox.append(
-        renderFinalTeam(highWinner, "Higher winner"),
-        finalVs(),
-        renderFinalTeam(lowWinner, "Lower winner")
-      );
-      const champ = document.createElement("div");
-      champ.className = "champion";
-      champ.textContent = champion ? `Champion: ${displayName(champion)}` : "Pick the grand final winner";
-      els.finalBox.appendChild(champ);
-    }
-
-    function finalVs() {
-      const div = document.createElement("div");
-      div.className = "vs";
-      div.textContent = "VS";
-      return div;
-    }
-
-    function renderFinalTeam(id, fallback) {
-      const button = document.createElement("button");
-      button.className = "final-team";
-      button.type = "button";
-      button.textContent = id ? displayName(id) : fallback;
-      button.disabled = !id || readOnly;
-      if (state.finalWinner === id) button.style.borderColor = "rgba(117,211,109,.88)";
-      button.addEventListener("click", () => {
-        if (!id || readOnly) return;
-        state.finalWinner = id;
-        saveState();
-        renderFinal();
-      });
-      return button;
-    }
-
-    function renderRosters() {
-      const teams = [...state.highSlots, ...state.lowSlots].map(teamById).filter(Boolean);
-      if (!state.selectedTeamId || !teamById(state.selectedTeamId)) state.selectedTeamId = teams[0]?.id || null;
-      els.teamList.innerHTML = "";
-      teams.forEach(team => {
-        const button = document.createElement("button");
-        button.className = "team-link" + (team.id === state.selectedTeamId ? " active" : "");
-        button.type = "button";
-        button.textContent = displayName(team.id);
-        button.addEventListener("click", () => {
-          state.selectedTeamId = team.id;
-          navigate("roster", team.id);
-        });
-        els.teamList.appendChild(button);
-      });
-      renderRosterCard();
-    }
-
-    function renderRosterCard() {
-      const team = teamById(state.selectedTeamId);
-      els.rosterCard.innerHTML = "";
-      if (!team) {
-        const empty = document.createElement("div");
-        empty.className = "empty-state";
-        empty.textContent = "Add a team first, then open its player page.";
-        els.rosterCard.appendChild(empty);
-        return;
-      }
-      const head = document.createElement("div");
-      head.className = "roster-head";
-      const titleWrap = document.createElement("div");
-      const title = document.createElement("h2");
-      title.textContent = displayName(team.id);
-      const sub = document.createElement("p");
-      sub.className = "hint";
-      sub.textContent = "Warriors Name : 💀";
-      titleWrap.append(title, sub);
-      const back = document.createElement("button");
-      back.className = "btn";
-      back.type = "button";
-      back.textContent = "Back";
-      back.addEventListener("click", () => navigate("league"));
-      head.append(titleWrap, back);
-
-      const players = document.createElement("div");
-      players.className = "players";
-      team.players.forEach((player, index) => {
-        const row = document.createElement("div");
-        row.className = "player-row";
-        const label = document.createElement("span");
-        label.className = "small-label";
-        label.textContent = `Player ${index + 1}`;
-        const input = document.createElement("input");
-        input.className = "field";
-        input.placeholder = "Player name";
-        input.value = player;
-        input.addEventListener("input", event => {
-          team.players[index] = event.target.value;
-          saveState();
-        });
-        const clear = iconButton("X", "Clear player", () => {
-          team.players[index] = "";
-          saveState();
-          renderRosterCard();
-        }, "remove");
-        row.append(label, input, clear);
-        players.appendChild(row);
-      });
-      els.rosterCard.append(head, players);
-    }
-
-    function addFriend() {
-      if (readOnly) return;
-      state.friends.players.push("");
-      saveState();
-      renderFriends();
-    }
-
-    function removeFriend(index) {
-      if (readOnly) return;
-      if (state.friends.players.length <= CONFIG.initialFriends) {
-        state.friends.players[index] = "";
-      } else {
-        state.friends.players.splice(index, 1);
-      }
-      while (state.friends.players.length < CONFIG.initialFriends) state.friends.players.push("");
-      saveState();
-      renderFriends();
-    }
-
-    function resetFriends() {
-      if (readOnly || !confirm("Reset this player competition?")) return;
-      state.friends = { eventName: "", players: Array(CONFIG.initialFriends).fill("") };
-      saveState();
-      renderAll();
-      askForEventName();
-    }
-
-    function renderFriends() {
-      els.friendList.innerHTML = "";
-      state.friends.players.forEach((player, index) => {
-        const row = document.createElement("div");
-        row.className = "friend-row";
-        const rank = document.createElement("div");
-        rank.className = "rank";
-        rank.textContent = index + 1;
-        const input = document.createElement("input");
-        input.className = "field";
-        input.placeholder = "Player name";
-        input.value = player;
-        input.addEventListener("input", event => {
-          state.friends.players[index] = event.target.value;
-          saveState();
-        });
-        const remove = iconButton("X", "Remove player", () => removeFriend(index), "remove");
-        remove.disabled = readOnly;
-        row.append(rank, input, remove);
-        els.friendList.appendChild(row);
-      });
-    }
-
-    function resetLeague() {
-      if (readOnly || !confirm("Reset league teams, rosters, and bracket progress?")) return;
-      const fresh = defaultState();
-      state.meta = fresh.meta;
-      state.teams = fresh.teams;
-      state.highSlots = fresh.highSlots;
-      state.lowSlots = fresh.lowSlots;
-      state.picks = {};
-      state.finalWinner = null;
-      state.selectedTeamId = fresh.selectedTeamId;
-      saveState();
-      renderAll();
-      askForLeagueName();
-    }
-
-    function createShareLink() {
-      const snapshot = {
-        meta: state.meta,
-        teams: state.teams,
-        highSlots: state.highSlots,
-        lowSlots: state.lowSlots,
-        picks: state.picks,
-        finalWinner: state.finalWinner,
-        selectedTeamId: state.selectedTeamId,
-        friends: state.friends
-      };
-      const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(snapshot))));
-      const url = `${location.href.split("#")[0]}#share=${encoded}`;
-      navigator.clipboard?.writeText(url).then(
-        () => alert("Read-only share link copied. Send it to viewers."),
-        () => prompt("Copy this read-only link:", url)
-      );
-    }
-  </script>
-</body>
+
+        <script>
+            const CONFIG = {
+                storageKey: "bracket-forge-v2",
+                oldStorageKey: "iron-crest-league-v1",
+                defaultHigh: 16,
+                defaultLow: 8,
+                rosterSize: 15,
+                initialFriends: 4,
+            };
+
+            const fallbackNames = [
+                "ELT",
+                "S2G",
+                "ZR",
+                "MAX A",
+                "RD",
+                "eG",
+                "AoH",
+                "YMT",
+                "MGA",
+                "SSG",
+                "RCM",
+                "ZK",
+                "FxT",
+                "Hallow",
+                "MAX",
+                "GMS",
+            ];
+
+            const state = loadState();
+            const sharedImport = loadSharedStateIfPresent();
+            const readOnly = false;
+
+            const els = {
+                views: {
+                    home: document.getElementById("homeView"),
+                    league: document.getElementById("leagueView"),
+                    teams: document.getElementById("teamsView"),
+                    roster: document.getElementById("rosterView"),
+                    friends: document.getElementById("friendsView"),
+                },
+                appTitle: document.getElementById("appTitle"),
+                appSubtitle: document.getElementById("appSubtitle"),
+                readOnlyBanner: document.getElementById("readOnlyBanner"),
+                leagueNameInput: document.getElementById("leagueNameInput"),
+                gameNameInput: document.getElementById("gameNameInput"),
+                highBracket: document.getElementById("highBracket"),
+                lowBracket: document.getElementById("lowBracket"),
+                highCount: document.getElementById("highCount"),
+                lowCount: document.getElementById("lowCount"),
+                finalBox: document.getElementById("finalBox"),
+                teamRows: document.getElementById("teamRows"),
+                swapA: document.getElementById("swapA"),
+                swapB: document.getElementById("swapB"),
+                teamList: document.getElementById("teamList"),
+                rosterCard: document.getElementById("rosterCard"),
+                eventNameInput: document.getElementById("eventNameInput"),
+                friendList: document.getElementById("friendList"),
+                modalBackdrop: document.getElementById("modalBackdrop"),
+                modalTitle: document.getElementById("modalTitle"),
+                modalText: document.getElementById("modalText"),
+                modalInput: document.getElementById("modalInput"),
+                modalCancel: document.getElementById("modalCancel"),
+                modalOk: document.getElementById("modalOk"),
+            };
+
+            document.querySelectorAll("[data-route]").forEach((button) => {
+                button.addEventListener("click", () =>
+                    navigate(button.dataset.route),
+                );
+            });
+            document
+                .getElementById("addTeamBtn")
+                .addEventListener("click", addTeam);
+            document
+                .getElementById("swapBtn")
+                .addEventListener("click", swapSelectedTeams);
+            document
+                .getElementById("shareBtn")
+                .addEventListener("click", createShareLink);
+            document
+                .getElementById("resetLeagueBtn")
+                .addEventListener("click", resetLeague);
+            document
+                .getElementById("addFriendBtn")
+                .addEventListener("click", addFriend);
+            document
+                .getElementById("resetFriendsBtn")
+                .addEventListener("click", resetFriends);
+
+            els.leagueNameInput.addEventListener("input", (event) =>
+                updateMeta("leagueName", event.target.value),
+            );
+            els.gameNameInput.addEventListener("input", (event) =>
+                updateMeta("gameName", event.target.value),
+            );
+            els.eventNameInput.addEventListener("input", (event) =>
+                updateFriendsName(event.target.value),
+            );
+            window.addEventListener("hashchange", routeFromHash);
+
+            if (sharedImport) saveState();
+            applyReadOnlyMode();
+            routeFromHash();
+            renderAll();
+
+            // ─── UTILITIES ────────────────────────────────────────────────────────────
+
+            function uid() {
+                if (
+                    typeof crypto !== "undefined" &&
+                    typeof crypto.randomUUID === "function"
+                )
+                    return crypto.randomUUID();
+                return (
+                    Date.now().toString(36) +
+                    "-" +
+                    Math.random().toString(36).slice(2, 10)
+                );
+            }
+
+            function createTeam(name = "", bracket = "high") {
+                return {
+                    id: "team-" + uid(),
+                    name,
+                    bracket,
+                    logo: "",
+                    players: Array(CONFIG.rosterSize).fill(""),
+                };
+            }
+
+            function defaultState() {
+                const high = Array.from(
+                    { length: CONFIG.defaultHigh },
+                    (_, index) =>
+                        createTeam(fallbackNames[index] || "", "high"),
+                );
+                const low = Array.from({ length: CONFIG.defaultLow }, () =>
+                    createTeam("", "low"),
+                );
+                return {
+                    meta: { leagueName: "", gameName: "" },
+                    teams: [...high, ...low],
+                    highSlots: high.map((team) => team.id),
+                    lowSlots: low.map((team) => team.id),
+                    picks: {},
+                    finalWinner: null,
+                    selectedTeamId: high[0].id,
+                    friends: {
+                        eventName: "",
+                        players: Array(CONFIG.initialFriends).fill(""),
+                    },
+                };
+            }
+
+            function normalizeState(raw) {
+                const base = defaultState();
+                const next = { ...base, ...raw };
+                next.meta = { ...base.meta, ...(raw.meta || {}) };
+                next.friends = { ...base.friends, ...(raw.friends || {}) };
+                next.teams = Array.isArray(raw.teams) ? raw.teams : base.teams;
+                next.teams.forEach((team) => {
+                    if (!team.id) team.id = "team-" + uid();
+                    if (!team.bracket)
+                        team.bracket = next.lowSlots?.includes(team.id)
+                            ? "low"
+                            : "high";
+                    if (typeof team.logo !== "string") team.logo = "";
+                    if (!Array.isArray(team.players)) team.players = [];
+                    team.players = team.players.slice(0, CONFIG.rosterSize);
+                    while (team.players.length < CONFIG.rosterSize)
+                        team.players.push("");
+                });
+                next.highSlots = Array.isArray(raw.highSlots)
+                    ? raw.highSlots.filter((id) => teamByIdFrom(next.teams, id))
+                    : next.teams
+                          .filter((t) => t.bracket === "high")
+                          .map((t) => t.id);
+                next.lowSlots = Array.isArray(raw.lowSlots)
+                    ? raw.lowSlots.filter((id) => teamByIdFrom(next.teams, id))
+                    : next.teams
+                          .filter((t) => t.bracket === "low")
+                          .map((t) => t.id);
+                next.teams.forEach((team) => {
+                    if (
+                        !next.highSlots.includes(team.id) &&
+                        !next.lowSlots.includes(team.id)
+                    ) {
+                        next[
+                            team.bracket === "low" ? "lowSlots" : "highSlots"
+                        ].push(team.id);
+                    }
+                });
+                if (!Array.isArray(next.friends.players))
+                    next.friends.players = Array(CONFIG.initialFriends).fill(
+                        "",
+                    );
+                while (next.friends.players.length < CONFIG.initialFriends)
+                    next.friends.players.push("");
+                next.picks = raw.picks || {};
+                return next;
+            }
+
+            function loadState() {
+                try {
+                    const saved = JSON.parse(
+                        localStorage.getItem(CONFIG.storageKey),
+                    );
+                    if (saved) return normalizeState(saved);
+                } catch (error) {
+                    console.warn("Could not load saved data", error);
+                }
+                try {
+                    const old = JSON.parse(
+                        localStorage.getItem(CONFIG.oldStorageKey),
+                    );
+                    if (old) {
+                        old.meta = {
+                            leagueName: "IRON CREST LEAGUE",
+                            gameName: "Blockpost Mobile",
+                        };
+                        old.friends = {
+                            eventName: "",
+                            players: Array(CONFIG.initialFriends).fill(""),
+                        };
+                        return normalizeState(old);
+                    }
+                } catch (error) {
+                    console.warn("Could not migrate old data", error);
+                }
+                return defaultState();
+            }
+
+            function loadSharedStateIfPresent() {
+                const hash = location.hash.replace(/^#/, "");
+                if (!hash.startsWith("share=")) return false;
+                try {
+                    const shared = JSON.parse(
+                        decodeURIComponent(escape(atob(hash.slice(6)))),
+                    );
+                    Object.keys(state).forEach((key) => delete state[key]);
+                    Object.assign(state, normalizeState(shared));
+                    return true;
+                } catch (error) {
+                    alert("This share link could not be opened.");
+                    return false;
+                }
+            }
+
+            function saveState() {
+                if (!readOnly)
+                    localStorage.setItem(
+                        CONFIG.storageKey,
+                        JSON.stringify(state),
+                    );
+            }
+
+            function teamByIdFrom(teams, id) {
+                return teams.find((team) => team.id === id) || null;
+            }
+            function teamById(id) {
+                return teamByIdFrom(state.teams, id);
+            }
+
+            function displayName(id) {
+                const team = teamById(id);
+                return team && team.name.trim()
+                    ? team.name.trim()
+                    : "Unnamed team";
+            }
+
+            function teamInitials(id) {
+                return (
+                    displayName(id)
+                        .split(/\s+/)
+                        .map((part) => part[0])
+                        .join("")
+                        .slice(0, 2) || "T"
+                );
+            }
+
+            function teamLogoElement(id) {
+                const team = teamById(id);
+                if (team && team.logo) {
+                    const img = document.createElement("img");
+                    img.className = "team-logo";
+                    img.src = team.logo;
+                    img.alt = "";
+                    return img;
+                }
+                const fallback = document.createElement("span");
+                fallback.className = "team-logo";
+                fallback.textContent = teamInitials(id);
+                return fallback;
+            }
+
+            function setTeamButtonLabel(button, id, fallback = "Waiting") {
+                button.textContent = "";
+                if (!id) {
+                    const text = document.createElement("span");
+                    text.className = "name-text";
+                    text.textContent = fallback;
+                    button.appendChild(text);
+                    return;
+                }
+                const text = document.createElement("span");
+                text.className = "name-text";
+                text.textContent = displayName(id);
+                button.append(teamLogoElement(id), text);
+            }
+
+            function hasName(id) {
+                const team = teamById(id);
+                return Boolean(team && team.name.trim());
+            }
+
+            // ─── NAVIGATION ───────────────────────────────────────────────────────────
+
+            function navigate(route, teamId) {
+                const hash = teamId
+                    ? `${route}/${encodeURIComponent(teamId)}`
+                    : route;
+                location.hash = hash;
+                routeFromHash();
+            }
+
+            function routeFromHash() {
+                const hash = location.hash.replace(/^#/, "");
+                if (hash.startsWith("share=")) return showView("league");
+                if (hash.startsWith("roster/")) {
+                    const id = decodeURIComponent(hash.slice(7));
+                    if (teamById(id)) state.selectedTeamId = id;
+                    return showView("roster");
+                }
+                const route = ["home", "league", "teams", "friends"].includes(
+                    hash,
+                )
+                    ? hash
+                    : "home";
+                showView(route);
+            }
+
+            function showView(route) {
+                Object.values(els.views).forEach((view) =>
+                    view.classList.remove("active"),
+                );
+                els.views[route].classList.add("active");
+                if (route === "league") askForLeagueName();
+                if (route === "friends") askForEventName();
+                renderAll();
+            }
+
+            // ─── MODAL ────────────────────────────────────────────────────────────────
+
+            function promptBox({ title, text, value, placeholder, onSave }) {
+                els.modalTitle.textContent = title;
+                els.modalText.textContent = text;
+                els.modalInput.value = value || "";
+                els.modalInput.placeholder = placeholder || "";
+                els.modalBackdrop.classList.add("show");
+                els.modalInput.focus();
+                const close = () => {
+                    els.modalBackdrop.classList.remove("show");
+                    els.modalOk.onclick = null;
+                    els.modalCancel.onclick = null;
+                };
+                els.modalOk.onclick = () => {
+                    const typed = els.modalInput.value.trim();
+                    if (typed) onSave(typed);
+                    close();
+                    renderAll();
+                };
+                els.modalCancel.onclick = close;
+            }
+
+            function askForLeagueName() {
+                if (readOnly || state.meta.leagueName.trim()) return;
+                promptBox({
+                    title: "Name your league",
+                    text: "Give this tournament a name — you can edit it later from the bracket page.",
+                    placeholder: "Example: Iron Crest League",
+                    onSave: (value) => {
+                        state.meta.leagueName = value;
+                        if (!state.meta.gameName.trim())
+                            state.meta.gameName = "Your Game";
+                        saveState();
+                    },
+                });
+            }
+
+            function askForEventName() {
+                if (readOnly || state.friends.eventName.trim()) return;
+                promptBox({
+                    title: "Name your event",
+                    text: "Create a simple competition list for your players or friends.",
+                    placeholder: "Example: Friday Aim Duel",
+                    onSave: (value) => {
+                        state.friends.eventName = value;
+                        saveState();
+                    },
+                });
+            }
+
+            // ─── STATE HELPERS ────────────────────────────────────────────────────────
+
+            function applyReadOnlyMode() {
+                els.readOnlyBanner.classList.toggle("show", sharedImport);
+            }
+
+            function updateMeta(key, value) {
+                state.meta[key] = value;
+                saveState();
+                renderHeader();
+            }
+
+            function updateFriendsName(value) {
+                state.friends.eventName = value;
+                saveState();
+                renderHeader();
+            }
+
+            // ─── RENDER ───────────────────────────────────────────────────────────────
+
+            function renderAll() {
+                renderHeader();
+                renderLeagueInputs();
+                renderBracket(
+                    "high",
+                    state.highSlots,
+                    els.highBracket,
+                    els.highCount,
+                );
+                renderBracket(
+                    "low",
+                    state.lowSlots,
+                    els.lowBracket,
+                    els.lowCount,
+                );
+                renderFinal();
+                renderTeamManager();
+                renderRosters();
+                renderFriends();
+                applyReadOnlyMode();
+            }
+
+            function renderHeader() {
+                const league = state.meta.leagueName.trim();
+                const game = state.meta.gameName.trim();
+                els.appTitle.textContent = league || "Iron Crest League";
+                els.appSubtitle.textContent = game
+                    ? `${game} — tournament bracket manager`
+                    : "Tournament bracket manager — any game, zero backend.";
+                document.title = league || "Iron Crest League";
+            }
+
+            function renderLeagueInputs() {
+                els.leagueNameInput.value = state.meta.leagueName;
+                els.gameNameInput.value = state.meta.gameName;
+                els.leagueNameInput.placeholder = "League name";
+                els.gameNameInput.placeholder = "Game name";
+                els.eventNameInput.value = state.friends.eventName;
+                els.eventNameInput.placeholder = "Event name";
+            }
+
+            function bracketKey(bracket) {
+                return bracket === "low" ? "lowSlots" : "highSlots";
+            }
+
+            function clearProgress(bracket) {
+                Object.keys(state.picks).forEach((key) => {
+                    if (key.startsWith(bracket + "-")) delete state.picks[key];
+                });
+                state.finalWinner = null;
+            }
+
+            // ─── TEAM CRUD ────────────────────────────────────────────────────────────
+
+            function addTeam() {
+                if (readOnly) return;
+                const team = createTeam("", "high");
+                state.teams.push(team);
+                state.highSlots.push(team.id);
+                clearProgress("high");
+                saveState();
+                renderAll();
+            }
+
+            function removeTeam(id) {
+                if (readOnly) return;
+                const team = teamById(id);
+                if (
+                    !team ||
+                    !confirm(`Remove ${displayName(id)} from this league?`)
+                )
+                    return;
+                state.highSlots = state.highSlots.filter((tid) => tid !== id);
+                state.lowSlots = state.lowSlots.filter((tid) => tid !== id);
+                state.teams = state.teams.filter((item) => item.id !== id);
+                Object.keys(state.picks).forEach((key) => {
+                    if (state.picks[key] === id) delete state.picks[key];
+                });
+                if (state.finalWinner === id) state.finalWinner = null;
+                if (state.selectedTeamId === id)
+                    state.selectedTeamId = firstTeamId();
+                saveState();
+                renderAll();
+            }
+
+            function firstTeamId() {
+                return (
+                    [...state.highSlots, ...state.lowSlots].find((id) =>
+                        teamById(id),
+                    ) || null
+                );
+            }
+
+            function setTeamName(id, value) {
+                const team = teamById(id);
+                if (!team) return;
+                team.name = value;
+                saveState();
+                renderHeader();
+                renderFinal();
+                renderRosters();
+            }
+
+            function moveTeam(id, bracket) {
+                if (readOnly) return;
+                const team = teamById(id);
+                if (!team || team.bracket === bracket) return;
+                state.highSlots = state.highSlots.filter((tid) => tid !== id);
+                state.lowSlots = state.lowSlots.filter((tid) => tid !== id);
+                state[bracketKey(bracket)].push(id);
+                team.bracket = bracket;
+                clearProgress("high");
+                clearProgress("low");
+                saveState();
+                renderAll();
+            }
+
+            function swapSelectedTeams() {
+                if (readOnly) return;
+                swapTeams(els.swapA.value, els.swapB.value);
+            }
+
+            function swapTeams(a, b) {
+                if (!a || !b || a === b) return;
+                const teamA = teamById(a);
+                const teamB = teamById(b);
+                if (!teamA || !teamB) return;
+                const aBracket = teamA.bracket;
+                const bBracket = teamB.bracket;
+                replaceSlot(bracketKey(aBracket), a, b);
+                replaceSlot(bracketKey(bBracket), b, a);
+                teamA.bracket = bBracket;
+                teamB.bracket = aBracket;
+                clearProgress("high");
+                clearProgress("low");
+                saveState();
+                renderAll();
+            }
+
+            function replaceSlot(key, oldId, newId) {
+                const index = state[key].indexOf(oldId);
+                if (index >= 0) state[key][index] = newId;
+            }
+
+            // ─── TEAM MANAGER RENDER ──────────────────────────────────────────────────
+
+            function renderTeamManager() {
+                els.teamRows.innerHTML = "";
+                const teams = [...state.highSlots, ...state.lowSlots]
+                    .map(teamById)
+                    .filter(Boolean);
+                teams.forEach((team) => {
+                    const row = document.createElement("div");
+                    row.className = "team-row";
+
+                    const name = document.createElement("input");
+                    name.className = "field";
+                    name.placeholder = "Team name";
+                    name.value = team.name;
+                    name.addEventListener("input", (event) =>
+                        setTeamName(team.id, event.target.value),
+                    );
+
+                    const bracket = document.createElement("select");
+                    bracket.className = "select";
+                    bracket.innerHTML =
+                        '<option value="high">Higher</option><option value="low">Lower</option>';
+                    bracket.value = team.bracket;
+                    bracket.addEventListener("change", (event) =>
+                        moveTeam(team.id, event.target.value),
+                    );
+
+                    const roster = iconButton("P", "Open players", () =>
+                        navigate("roster", team.id),
+                    );
+                    const move = iconButton(
+                        "S",
+                        "Swap with selected",
+                        () => {
+                            els.swapA.value = team.id;
+                            els.swapA.focus();
+                        },
+                        "swap",
+                    );
+                    const remove = iconButton(
+                        "X",
+                        "Remove team",
+                        () => removeTeam(team.id),
+                        "remove",
+                    );
+
+                    row.append(name, bracket, roster, move, remove);
+                    els.teamRows.appendChild(row);
+                });
+
+                fillTeamSelect(els.swapA, teams);
+                fillTeamSelect(els.swapB, teams);
+            }
+
+            function fillTeamSelect(select, teams) {
+                const old = select.value;
+                select.innerHTML = "";
+                teams.forEach((team) => {
+                    const option = document.createElement("option");
+                    option.value = team.id;
+                    option.textContent = `${displayName(team.id)} (${team.bracket === "high" ? "Higher" : "Lower"})`;
+                    select.appendChild(option);
+                });
+                if (teams.some((team) => team.id === old)) select.value = old;
+            }
+
+            function iconButton(text, title, onClick, extraClass = "") {
+                const button = document.createElement("button");
+                button.className = `icon-btn ${extraClass}`.trim();
+                button.type = "button";
+                button.textContent = text;
+                button.title = title;
+                button.addEventListener("click", onClick);
+                return button;
+            }
+
+            // ─── BRACKET ─────────────────────────────────────────────────────────────
+
+            function pickKey(bracket, roundIndex, matchIndex) {
+                return `${bracket}-${roundIndex}-${matchIndex}`;
+            }
+
+            function buildRounds(slotIds, bracket) {
+                const rounds = [slotIds.slice()];
+                let current = slotIds.slice();
+                let roundIndex = 0;
+                while (current.length > 1) {
+                    const next = [];
+                    for (let index = 0; index < current.length; index += 2) {
+                        const left = current[index] || null;
+                        const right = current[index + 1] || null;
+                        const saved =
+                            state.picks[
+                                pickKey(bracket, roundIndex, index / 2)
+                            ];
+                        let winner = null;
+                        if (saved && (saved === left || saved === right))
+                            winner = saved;
+                        else if (left && !right) winner = left;
+                        next.push(winner);
+                    }
+                    rounds.push(next);
+                    current = next;
+                    roundIndex += 1;
+                }
+                return rounds;
+            }
+
+            function renderBracket(bracket, slots, container, countEl) {
+                const rounds = buildRounds(slots, bracket);
+                countEl.textContent = `${slots.length} teams`;
+                container.style.setProperty(
+                    "--round-height",
+                    `${Math.max(120, Math.ceil(slots.length / 2) * 92)}px`,
+                );
+                container.innerHTML = "";
+
+                rounds.forEach((round, roundIndex) => {
+                    const roundEl = document.createElement("div");
+                    roundEl.className = "round";
+
+                    const label = document.createElement("div");
+                    label.className = "round-label";
+                    label.textContent =
+                        roundIndex === 0
+                            ? "Round 1"
+                            : round.length === 1
+                              ? "Finalist"
+                              : `Round ${roundIndex + 1}`;
+                    roundEl.appendChild(label);
+
+                    if (round.length === 1 && roundIndex > 0) {
+                        const match = document.createElement("div");
+                        match.className = "match";
+                        match.appendChild(renderReadOnlySlot(round[0]));
+                        roundEl.appendChild(match);
+                    } else {
+                        for (let index = 0; index < round.length; index += 2) {
+                            const match = document.createElement("div");
+                            match.className = "match";
+                            const left = round[index] || null;
+                            const right = round[index + 1] || null;
+                            const matchIndex = Math.floor(index / 2);
+                            match.appendChild(
+                                renderPickSlot(
+                                    bracket,
+                                    roundIndex,
+                                    matchIndex,
+                                    left,
+                                    right,
+                                ),
+                            );
+                            if (right || index + 1 < round.length)
+                                match.appendChild(
+                                    renderPickSlot(
+                                        bracket,
+                                        roundIndex,
+                                        matchIndex,
+                                        right,
+                                        left,
+                                    ),
+                                );
+                            roundEl.appendChild(match);
+                        }
+                    }
+                    container.appendChild(roundEl);
+                });
+            }
+
+            function renderReadOnlySlot(id) {
+                const slot = document.createElement("div");
+                slot.className = "slot" + (id ? "" : " empty");
+                const name = document.createElement("button");
+                name.className = "name-button";
+                name.type = "button";
+                name.textContent = id ? displayName(id) : "Waiting";
+                name.disabled = !id;
+                name.addEventListener(
+                    "click",
+                    () => id && navigate("roster", id),
+                );
+                const spacer = document.createElement("span");
+                slot.append(name, spacer);
+                return slot;
+            }
+
+            function renderPickSlot(
+                bracket,
+                roundIndex,
+                matchIndex,
+                id,
+                opponentId,
+            ) {
+                const key = pickKey(bracket, roundIndex, matchIndex);
+                const canPick = Boolean(
+                    id && (!opponentId || (hasName(id) && hasName(opponentId))),
+                );
+                const slot = document.createElement("div");
+                slot.className = "slot" + (id ? "" : " empty");
+                slot.classList.toggle("can-pick", canPick);
+                slot.classList.toggle(
+                    "winner",
+                    state.picks[key] === id && Boolean(id),
+                );
+
+                const name = document.createElement("button");
+                name.className = "name-button";
+                name.type = "button";
+                name.textContent = id ? displayName(id) : "Waiting";
+                name.disabled = !id;
+                name.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    if (id) navigate("roster", id);
+                });
+
+                const pick = iconButton(
+                    "OK",
+                    "Move team forward",
+                    (event) => {
+                        if (event.stopPropagation) event.stopPropagation();
+                        chooseWinner(bracket, roundIndex, matchIndex, id);
+                    },
+                    "pick",
+                );
+                pick.disabled = !canPick || readOnly;
+
+                slot.append(name, pick);
+                if (canPick && !readOnly)
+                    slot.addEventListener("click", () =>
+                        chooseWinner(bracket, roundIndex, matchIndex, id),
+                    );
+                return slot;
+            }
+
+            function chooseWinner(bracket, roundIndex, matchIndex, id) {
+                if (readOnly || !id) return;
+                const rounds = buildRounds(state[bracketKey(bracket)], bracket);
+                const pair = [
+                    rounds[roundIndex][matchIndex * 2],
+                    rounds[roundIndex][matchIndex * 2 + 1],
+                ].filter(Boolean);
+                if (!pair.includes(id)) return;
+                if (pair.length === 2 && !pair.every(hasName)) return;
+                state.picks[pickKey(bracket, roundIndex, matchIndex)] = id;
+                Object.keys(state.picks).forEach((key) => {
+                    if (!key.startsWith(bracket + "-")) return;
+                    const [, roundText] = key.split("-");
+                    if (Number(roundText) > roundIndex) delete state.picks[key];
+                });
+                state.finalWinner = null;
+                saveState();
+                renderAll();
+            }
+
+            function lastWinner(bracket) {
+                const rounds = buildRounds(state[bracketKey(bracket)], bracket);
+                return rounds[rounds.length - 1][0] || null;
+            }
+
+            // ─── FINAL CARD ───────────────────────────────────────────────────────────
+
+            function renderFinal() {
+                const highWinner = lastWinner("high");
+                const lowWinner = lastWinner("low");
+                const champion =
+                    state.finalWinner &&
+                    [highWinner, lowWinner].includes(state.finalWinner)
+                        ? state.finalWinner
+                        : null;
+                els.finalBox.innerHTML = "";
+                els.finalBox.append(
+                    renderFinalTeam(highWinner, "Higher winner"),
+                    finalVs(),
+                    renderFinalTeam(lowWinner, "Lower winner"),
+                );
+                const champ = document.createElement("div");
+                champ.className = "champion";
+                champ.textContent = champion
+                    ? `🏆 Champion: ${displayName(champion)}`
+                    : "Pick the grand final winner";
+                els.finalBox.appendChild(champ);
+            }
+
+            function finalVs() {
+                const div = document.createElement("div");
+                div.className = "vs";
+                div.textContent = "VS";
+                return div;
+            }
+
+            function renderFinalTeam(id, fallback) {
+                const button = document.createElement("button");
+                button.className = "final-team";
+                button.type = "button";
+                button.textContent = id ? displayName(id) : fallback;
+                button.disabled = !id || readOnly;
+                if (state.finalWinner === id)
+                    button.style.cssText =
+                        "border-color:rgba(0,255,140,.72);box-shadow:0 0 8px rgba(0,255,140,.35);";
+                button.addEventListener("click", () => {
+                    if (!id || readOnly) return;
+                    state.finalWinner = id;
+                    saveState();
+                    renderFinal();
+                });
+                return button;
+            }
+
+            // ─── ROSTERS ─────────────────────────────────────────────────────────────
+
+            function renderRosters() {
+                const teams = [...state.highSlots, ...state.lowSlots]
+                    .map(teamById)
+                    .filter(Boolean);
+                if (!state.selectedTeamId || !teamById(state.selectedTeamId))
+                    state.selectedTeamId = teams[0]?.id || null;
+                els.teamList.innerHTML = "";
+                teams.forEach((team) => {
+                    const button = document.createElement("button");
+                    button.className =
+                        "team-link" +
+                        (team.id === state.selectedTeamId ? " active" : "");
+                    button.type = "button";
+                    button.textContent = displayName(team.id);
+                    button.addEventListener("click", () => {
+                        state.selectedTeamId = team.id;
+                        navigate("roster", team.id);
+                    });
+                    els.teamList.appendChild(button);
+                });
+                renderRosterCard();
+            }
+
+            function renderRosterCard() {
+                const team = teamById(state.selectedTeamId);
+                els.rosterCard.innerHTML = "";
+                if (!team) {
+                    const empty = document.createElement("div");
+                    empty.className = "empty-state";
+                    empty.textContent =
+                        "Add a team first, then open its player page.";
+                    els.rosterCard.appendChild(empty);
+                    return;
+                }
+
+                const head = document.createElement("div");
+                head.className = "roster-head";
+                const titleWrap = document.createElement("div");
+                const title = document.createElement("h2");
+                title.textContent = displayName(team.id);
+                const sub = document.createElement("p");
+                sub.className = "hint";
+                sub.textContent = "Warriors / Players 💀";
+                titleWrap.append(title, sub);
+
+                const back = document.createElement("button");
+                back.className = "btn";
+                back.type = "button";
+                back.textContent = "← Back";
+                back.addEventListener("click", () => navigate("league"));
+                head.append(titleWrap, back);
+
+                const players = document.createElement("div");
+                players.className = "players";
+                team.players.forEach((player, index) => {
+                    const row = document.createElement("div");
+                    row.className = "player-row";
+                    const label = document.createElement("span");
+                    label.className = "small-label";
+                    label.textContent = `Player ${index + 1}`;
+                    const input = document.createElement("input");
+                    input.className = "field";
+                    input.placeholder = "Player name";
+                    input.value = player;
+                    input.addEventListener("input", (event) => {
+                        team.players[index] = event.target.value;
+                        saveState();
+                    });
+                    const clear = iconButton(
+                        "X",
+                        "Clear player",
+                        () => {
+                            team.players[index] = "";
+                            saveState();
+                            renderRosterCard();
+                        },
+                        "remove",
+                    );
+                    row.append(label, input, clear);
+                    players.appendChild(row);
+                });
+                els.rosterCard.append(head, players);
+            }
+
+            // ─── FRIENDS / PLAYERS ────────────────────────────────────────────────────
+
+            function addFriend() {
+                if (readOnly) return;
+                state.friends.players.push("");
+                saveState();
+                renderFriends();
+            }
+
+            function removeFriend(index) {
+                if (readOnly) return;
+                if (state.friends.players.length <= CONFIG.initialFriends) {
+                    state.friends.players[index] = "";
+                } else {
+                    state.friends.players.splice(index, 1);
+                }
+                while (state.friends.players.length < CONFIG.initialFriends)
+                    state.friends.players.push("");
+                saveState();
+                renderFriends();
+            }
+
+            function resetFriends() {
+                if (readOnly || !confirm("Reset this player competition?"))
+                    return;
+                state.friends = {
+                    eventName: "",
+                    players: Array(CONFIG.initialFriends).fill(""),
+                };
+                saveState();
+                renderAll();
+                askForEventName();
+            }
+
+            function renderFriends() {
+                els.friendList.innerHTML = "";
+                state.friends.players.forEach((player, index) => {
+                    const row = document.createElement("div");
+                    row.className = "friend-row";
+                    const rank = document.createElement("div");
+                    rank.className = "rank";
+                    rank.textContent = index + 1;
+                    const input = document.createElement("input");
+                    input.className = "field";
+                    input.placeholder = "Player name";
+                    input.value = player;
+                    input.addEventListener("input", (event) => {
+                        state.friends.players[index] = event.target.value;
+                        saveState();
+                    });
+                    const remove = iconButton(
+                        "X",
+                        "Remove player",
+                        () => removeFriend(index),
+                        "remove",
+                    );
+                    remove.disabled = readOnly;
+                    row.append(rank, input, remove);
+                    els.friendList.appendChild(row);
+                });
+            }
+
+            // ─── RESET / SHARE ────────────────────────────────────────────────────────
+
+            function resetLeague() {
+                if (
+                    readOnly ||
+                    !confirm(
+                        "Reset league teams, rosters, and bracket progress?",
+                    )
+                )
+                    return;
+                const fresh = defaultState();
+                state.meta = fresh.meta;
+                state.teams = fresh.teams;
+                state.highSlots = fresh.highSlots;
+                state.lowSlots = fresh.lowSlots;
+                state.picks = {};
+                state.finalWinner = null;
+                state.selectedTeamId = fresh.selectedTeamId;
+                saveState();
+                renderAll();
+                askForLeagueName();
+            }
+
+            function createShareLink() {
+                const snapshot = {
+                    meta: state.meta,
+                    teams: state.teams,
+                    highSlots: state.highSlots,
+                    lowSlots: state.lowSlots,
+                    picks: state.picks,
+                    finalWinner: state.finalWinner,
+                    selectedTeamId: state.selectedTeamId,
+                    friends: state.friends,
+                };
+                const encoded = btoa(
+                    unescape(encodeURIComponent(JSON.stringify(snapshot))),
+                );
+                const url = `${location.href.split("#")[0]}#share=${encoded}`;
+                navigator.clipboard?.writeText(url).then(
+                    () =>
+                        alert(
+                            "✅ Editable share link copied to clipboard. Viewers get their own editable copy.",
+                        ),
+                    () => prompt("Copy this editable share link:", url),
+                );
+            }
+        </script>
+    </body>
 </html>
